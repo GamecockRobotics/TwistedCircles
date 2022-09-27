@@ -9,15 +9,16 @@ brain  Brain;
 
 // VEXcode device constructors
 controller Controller1 = controller(primary);
-motor Right1 = motor(PORT1, ratio6_1, false);
-motor Right2 = motor(PORT2, ratio6_1, true);
-motor Left1 = motor(PORT4, ratio6_1, false);
-motor Left2 = motor(PORT5, ratio18_1, false);
-motor Right3 = motor(PORT3, ratio6_1, false);
-motor Left3 = motor(PORT6, ratio6_1, false);
-motor Catapult = motor(PORT7, ratio6_1, false);
+motor Right1 = motor(PORT8, ratio6_1, true);
+motor Right2 = motor(PORT9, ratio6_1, false);
+motor Left1 = motor(PORT1, ratio6_1, false);
+motor Left2 = motor(PORT2, ratio18_1, true);
+motor Right3 = motor(PORT10, ratio6_1, true);
+motor Left3 = motor(PORT3, ratio6_1, false);
+motor Catapult = motor(PORT11, ratio6_1, false);
 bumper SlipGearSensor = bumper(Brain.ThreeWirePort.A);
-distance USsensor = distance(PORT8);
+distance USsensor = distance(PORT21);
+motor Intake = motor(PORT5, ratio6_1, false);
 
 // VEXcode generated functions
 // define variable for remote controller enable/disable

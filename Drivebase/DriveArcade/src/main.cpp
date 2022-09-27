@@ -11,15 +11,16 @@
 // Robot Configuration:
 // [Name]               [Type]        [Port(s)]
 // Controller1          controller                    
-// Right1               motor         1               
-// Right2               motor         2               
-// Left1                motor         4               
-// Left2                motor         5               
-// Right3               motor         3               
-// Left3                motor         6               
-// Catapult             motor         7               
+// Right1               motor         8               
+// Right2               motor         9               
+// Left1                motor         1               
+// Left2                motor         2               
+// Right3               motor         10              
+// Left3                motor         3               
+// Catapult             motor         11              
 // SlipGearSensor       bumper        A               
-// USsensor             distance      8               
+// USsensor             distance      21              
+// Intake               motor         5               
 // ---- END VEXCODE CONFIGURED DEVICES ----
 
 #include "vex.h"
@@ -76,7 +77,7 @@ void autonomous(void) {
 /*---------------------------------------------------------------------------*/
 
 void launchCatapult(void) {
-  Catapult.spinToPosition(270, degrees, false);
+  Catapult.spin(forward, 100, percent);
 }
 
 void stopCatapult(void) {
@@ -107,10 +108,25 @@ void usercontrol(void) {
 
     // Catapult with US sensor
   
-    Controller1.ButtonR1.pressed(launchCatapult);
-    double distance = USsensor.objectDistance(inches);
-    if (distance <= 1)
-      stopCatapult();
+    if (Controller1.ButtonR1.pressing()) {
+       Catapult.spin(forward, 100, percent);
+    }
+    else if (Controller1.ButtonR2.pressing()) {
+       Catapult.spin(reverse, 100, percent);
+    }
+    else {Catapult.stop(hold);}
+    //double distance = USsensor.objectDistance(inches);
+    //if (distance <= 1)
+    //  stopCatapult();
+    
+    // Intake
+    if (Controller1.ButtonL1.pressing()) {
+      Intake.spin(reverse, 100, percent);
+    }
+    else if (Controller1.ButtonL2.pressing()) {
+      Intake.spin(forward, 100, percent);
+    }
+    else {Intake.stop();}
     
     // ........................................................................
 

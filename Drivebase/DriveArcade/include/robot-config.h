@@ -13,6 +13,7 @@ extern motor Left3;
 extern motor Catapult;
 extern bumper SlipGearSensor;
 extern distance USsensor;
+extern motor Intake;
 
 /**
  * Used to initialize code/tasks/devices added using tools in VEXcode Pro.
