@@ -102,6 +102,7 @@ void opcontrol() {
 	pros::Motor Intake(INTAKE_PORT);
 	catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
 	Intake.set_brake_mode(MOTOR_BRAKE_COAST);
+	
 	//Bumpers and switches example
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
 
@@ -112,6 +113,7 @@ void opcontrol() {
 		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
 
 		//Base SplitArcade Controls with pros
+		/*
 		int power = controller.get_analog(ANALOG_LEFT_Y);
 		int turn = controller.get_analog(ANALOG_RIGHT_Y);
 		int right = power - turn;
@@ -121,7 +123,18 @@ void opcontrol() {
 		right_mtr3.move(right);
 		left_mtr1.move(left);
 		left_mtr2.move(left);
+		left_mtr3.move(left);*/
+
+		//Base Tank Controls
+		int left = controller.get_analog(ANALOG_LEFT_Y);
+		int right = controller.get_analog(ANALOG_RIGHT_Y);
+		right_mtr1.move(right);
+		right_mtr2.move(right);
+		right_mtr3.move(right);
+		left_mtr1.move(left);
+		left_mtr2.move(left);
 		left_mtr3.move(left);
+
 
 		//Catapult Controls
 		if(controller.get_digital(DIGITAL_R1)){
@@ -134,6 +147,16 @@ void opcontrol() {
 
 		//Intake
 		if(controller.get_digital(DIGITAL_L1)){
+			Intake.move(-127);
+		} else if (controller.get_digital(DIGITAL_L2)){
+			Intake.move(90);
+		} else {
+			Intake.brake();
+		}
+
+		//For toggle
+		/*
+		if(controller.get_digital(DIGITAL_L1)){
 			intakeState = outtake;
 		} else if (intakeState == outtake){
 			intakeState = stopped;
@@ -145,7 +168,7 @@ void opcontrol() {
       		Intake.move(-127);
     	} else if (intakeState == intake) {
       		Intake.move(80);
-    	}
+    	} */
 
 
 
