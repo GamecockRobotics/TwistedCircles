@@ -7,7 +7,8 @@
 #define RIGHT_MTR2_PORT 9
 #define RIGHT_MTR3_PORT 10
 #define SLIPGEAR_BUMPER 'a'
-#define CATAPULT_PORT 11
+#define LEFT_CATAPULT_PORT 11
+#define RIGHT_CATAPULT_PORT 12
 #define INTAKE_PORT 5
 
 enum intakeDirection { intake, outtake, stopped };
@@ -98,9 +99,11 @@ void opcontrol() {
 	pros::Motor left_mtr1(LEFT_MTR1_PORT);
 	pros::Motor left_mtr2(LEFT_MTR2_PORT,true);
 	pros::Motor left_mtr3(LEFT_MTR3_PORT);
-	pros::Motor catapult(CATAPULT_PORT,MOTOR_GEAR_BLUE);
+	pros::Motor left_catapult(LEFT_CATAPULT_PORT,MOTOR_GEAR_RED);
+	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
 	pros::Motor Intake(INTAKE_PORT);
-	catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
+	left_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
+	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
 	Intake.set_brake_mode(MOTOR_BRAKE_COAST);
 	
 	//Bumpers and switches example
@@ -138,11 +141,14 @@ void opcontrol() {
 
 		//Catapult Controls
 		if(controller.get_digital(DIGITAL_R1)){
-			catapult.move_velocity(600);
+			left_catapult.move_velocity(600);
+			right_catapult.move_velocity(600);
 		} else if (controller.get_digital(DIGITAL_R2)){
-			catapult.move_velocity(-600);
+			left_catapult.move_velocity(-600);
+			right_catapult.move_velocity(-600);
 		} else {
-			catapult.brake();
+			left_catapult.brake();
+			right_catapult.brake();
 		}
 
 		//Intake
