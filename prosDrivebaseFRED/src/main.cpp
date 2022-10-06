@@ -140,7 +140,7 @@ void opcontrol() {
 			right_mtr2.brake();
 			right_mtr3.brake();
 		}
-		if(labs(left) > 5){
+		if(abs(left) > 5){
 			left_mtr1.move(left);
 			left_mtr2.move(left);
 			left_mtr3.move(left);
