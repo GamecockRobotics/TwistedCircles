@@ -140,7 +140,9 @@ void opcontrol() {
 	//Bumpers and switches example
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
 	*/
-	int flag = 0;
+	int cataFlag = 0;
+	int intakeLock = 0;
+	int i = 0;
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
@@ -198,36 +200,56 @@ void opcontrol() {
 		}*/
 		
 		if(controller.get_digital(DIGITAL_B)){
-			flag = 0;
+			cataFlag = 0;
+			intakeLock = 1;
 			left_catapult.move_velocity(600);
 			right_catapult.move_velocity(600);
 		} else if(controller.get_digital(DIGITAL_R1)){
-			flag = 1;
+			cataFlag = 1;
+			intakeLock = 1;
+			//left_catapult.tare_position();
+			//right_catapult.tare_position();
 			left_catapult.move_relative(2.5, CATAPULT_MAX);
 			right_catapult.move_relative(2.5, CATAPULT_MAX);
 			int value = right_catapult.get_position();
 			std::string s = std::to_string(value);
 			int value2 = left_catapult.get_position();
 			std::string s2 = std::to_string(value2);
-			pros::lcd::set_text(4, "RIGHTCATA: " + s);
-			pros::lcd::set_text(6, "LEFTCATA: " + s2);
+			//pros::lcd::set_text(4, "RIGHTCATA: " + s);
+			//pros::lcd::set_text(6, "LEFTCATA: " + s2);
 			//pros::delay(100);
 			
-		} else if(flag == 0 && !(controller.get_digital(DIGITAL_B))) {
+		} else if(cataFlag == 0 && !(controller.get_digital(DIGITAL_B))) {
+			intakeLock = 0;
 			left_catapult.brake();
 			right_catapult.brake();
 		}
 
-		if(fabs(left_catapult.get_target_position() - left_catapult.get_position()) < 0.1 && fabs(right_catapult.get_target_position() - right_catapult.get_position()) < 0.1){
-			flag = 0;
-			left_catapult.tare_position();
-			right_catapult.tare_position();
+		double value = left_catapult.get_position();
+		double value3 = left_catapult.get_target_position();
+		std::string thingy = std::to_string(value);
+		std::string thingy3 = std::to_string(value3);
+		double value2 = right_catapult.get_position();
+		double value4 = right_catapult.get_target_position();
+		std::string thingy2 = std::to_string(value2);
+		std::string thingy4 = std::to_string(value4);
+		pros::lcd::set_text(4, "LeftPos: " + thingy + " Target: " + thingy3);
+		pros::lcd::set_text(6, "RightPos: " + thingy2+ " Target: " + thingy4);
+		
+		if(fabs(left_catapult.get_position()- left_catapult.get_target_position()) >= 0.0 && fabs(right_catapult.get_position() - right_catapult.get_target_position()) >= 0.0 && cataFlag == 1){
+			cataFlag = 0;
+			intakeLock = 0;
+			i++;
+			std::string thingggggg = std::to_string(i);
+			pros::lcd::set_text(1, "InsideIf: " + thingggggg);
+			//left_catapult.tare_position();
+			//right_catapult.tare_position();
 		}
 
 		//Intake
-		if(controller.get_digital(DIGITAL_L1)){
+		if(controller.get_digital(DIGITAL_L1) && intakeLock == 0){
 			Intake.move(-127);
-		} else if (controller.get_digital(DIGITAL_L2)){
+		} else if (controller.get_digital(DIGITAL_L2) && intakeLock == 0){
 			Intake.move(90);
 		} else {
 			Intake.brake();
