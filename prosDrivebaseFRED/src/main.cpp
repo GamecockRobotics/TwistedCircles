@@ -1,4 +1,5 @@
 #include "main.h"
+#include <string>
 
 #define LEFT_MTR1_PORT 1
 #define LEFT_MTR2_PORT 2
@@ -10,9 +11,25 @@
 #define LEFT_CATAPULT_PORT 11
 #define RIGHT_CATAPULT_PORT 12
 #define INTAKE_PORT 5
-
+#define CATAPULT_MAX 600
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
+
+
+pros::Controller controller(pros::E_CONTROLLER_MASTER);
+	pros::Motor right_mtr1(RIGHT_MTR1_PORT, true);
+	pros::Motor right_mtr2(RIGHT_MTR2_PORT);
+	pros::Motor right_mtr3(RIGHT_MTR3_PORT,true);
+	pros::Motor left_mtr1(LEFT_MTR1_PORT);
+	pros::Motor left_mtr2(LEFT_MTR2_PORT,true);
+	pros::Motor left_mtr3(LEFT_MTR3_PORT);
+	pros::Motor left_catapult(LEFT_CATAPULT_PORT,MOTOR_GEAR_RED);
+	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
+	pros::Motor Intake(INTAKE_PORT);
+	
+	
+	//Bumpers and switches example
+	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
 
 /**
  * A callback function for LLEMU's center button.
@@ -41,7 +58,16 @@ void initialize() {
 	pros::lcd::set_text(1, "Hello PROS User!");
 
 	pros::lcd::register_btn1_cb(on_center_button);
+
+	pros::c::motor_tare_position(LEFT_CATAPULT_PORT);
+	pros::c::motor_tare_position(RIGHT_CATAPULT_PORT);
 	
+	pros::c::motor_set_encoder_units(LEFT_CATAPULT_PORT, pros::E_MOTOR_ENCODER_ROTATIONS);
+	pros::c::motor_set_encoder_units(RIGHT_CATAPULT_PORT, pros::E_MOTOR_ENCODER_ROTATIONS);
+	
+	left_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
+	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
+	Intake.set_brake_mode(MOTOR_BRAKE_COAST);
 }
 
 /**
@@ -91,7 +117,12 @@ void autonomous() {}
 
 void toggle() { intakeState = intakeState == intake ? stopped : intake; }
 
+void r1pressed(){
+	
+}
+
 void opcontrol() {
+	/*
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	pros::Motor right_mtr1(RIGHT_MTR1_PORT, true);
 	pros::Motor right_mtr2(RIGHT_MTR2_PORT);
@@ -108,8 +139,8 @@ void opcontrol() {
 	
 	//Bumpers and switches example
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
-
-
+	*/
+	int flag = 0;
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
 		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
@@ -152,6 +183,7 @@ void opcontrol() {
 
 
 		//Catapult Controls
+		/*
 		if(controller.get_digital(DIGITAL_R1)){
 			left_catapult.move_velocity(600);
 			right_catapult.move_velocity(600);
@@ -161,6 +193,33 @@ void opcontrol() {
 		} else {
 			left_catapult.brake();
 			right_catapult.brake();
+		}*/
+		
+		if(controller.get_digital(DIGITAL_B)){
+			flag = 0;
+			left_catapult.move_velocity(600);
+			right_catapult.move_velocity(600);
+		} else if(controller.get_digital(DIGITAL_R1)){
+			flag = 1;
+			left_catapult.move_relative(2.5, CATAPULT_MAX);
+			right_catapult.move_relative(2.5, CATAPULT_MAX);
+			int value = right_catapult.get_position();
+			std::string s = std::to_string(value);
+			int value2 = left_catapult.get_position();
+			std::string s2 = std::to_string(value2);
+			pros::lcd::set_text(4, "RIGHTCATA: " + s);
+			pros::lcd::set_text(6, "LEFTCATA: " + s2);
+			//pros::delay(100);
+			
+		} else if(flag == 0 && !(controller.get_digital(DIGITAL_B))) {
+			left_catapult.brake();
+			right_catapult.brake();
+		}
+
+		if(fabs(left_catapult.get_target_position() - left_catapult.get_position()) < 0.1 && fabs(right_catapult.get_target_position() - right_catapult.get_position()) < 0.1){
+			flag = 0;
+			left_catapult.tare_position();
+			right_catapult.tare_position();
 		}
 
 		//Intake
