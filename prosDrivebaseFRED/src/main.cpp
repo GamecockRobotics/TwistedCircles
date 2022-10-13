@@ -163,6 +163,7 @@ void opcontrol() {
 		int left = controller.get_analog(ANALOG_LEFT_Y);
 		int right = controller.get_analog(ANALOG_RIGHT_Y);
 		if(abs(right) > 5){
+			right = right -5 * (127/122);
 			right_mtr1.move(right);
 			right_mtr2.move(right);
 			right_mtr3.move(right);
@@ -172,6 +173,7 @@ void opcontrol() {
 			right_mtr3.brake();
 		}
 		if(abs(left) > 5){
+			left = left - 5 * (127/122);
 			left_mtr1.move(left);
 			left_mtr2.move(left);
 			left_mtr3.move(left);
