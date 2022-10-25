@@ -1,4 +1,7 @@
 #include "main.h"
+#include "pros/adi.hpp"
+#include "pros/llemu.hpp"
+#include <iostream>
 #include <string>
 
 #define LEFT_MTR1_PORT 1
@@ -7,10 +10,11 @@
 #define RIGHT_MTR1_PORT 8
 #define RIGHT_MTR2_PORT 9
 #define RIGHT_MTR3_PORT 10
-#define SLIPGEAR_BUMPER 'a'
+#define SLIPGEAR_BUMPER 'h'
 #define LEFT_CATAPULT_PORT 11
 #define RIGHT_CATAPULT_PORT 12
-#define INTAKE_PORT 5
+#define INTAKE_PORT_1 5
+#define INTAKE_PORT_2 7
 #define CATAPULT_MAX 600
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
@@ -25,8 +29,8 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	pros::Motor left_mtr3(LEFT_MTR3_PORT);
 	pros::Motor left_catapult(LEFT_CATAPULT_PORT,MOTOR_GEAR_RED);
 	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
-	pros::Motor Intake(INTAKE_PORT);
-	
+	pros::Motor Intake_1(INTAKE_PORT_1);
+	pros::Motor Intake_2(INTAKE_PORT_2, true);
 	
 	//Bumpers and switches example
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
@@ -67,7 +71,8 @@ void initialize() {
 	
 	left_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
 	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
-	Intake.set_brake_mode(MOTOR_BRAKE_COAST);
+	Intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
+	Intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
 }
 
 /**
@@ -198,7 +203,9 @@ void opcontrol() {
 			left_catapult.brake();
 			right_catapult.brake();
 		}*/
-		
+
+
+		/*
 		if(controller.get_digital(DIGITAL_B)){
 			cataFlag = 0;
 			intakeLock = 1;
@@ -225,6 +232,33 @@ void opcontrol() {
 			right_catapult.brake();
 		}
 
+		*/
+
+		// Catapult pull back on Button Sensor
+		if (!SlipGearSensor.get_value()) {
+			cataFlag = 1;
+			left_catapult.move_velocity(600);
+			right_catapult.move_velocity(600);
+			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+		}
+		else if (SlipGearSensor.get_value()) {
+			cataFlag = 0;
+			intakeLock = 0;
+			left_catapult.brake();
+			right_catapult.brake();
+			pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+		}
+		
+		pros::lcd::set_text(3, std::to_string(SlipGearSensor.get_value()));
+
+		if(controller.get_digital(DIGITAL_B) && cataFlag == 0){
+			cataFlag = 0;
+			intakeLock = 1;
+			left_catapult.move_velocity(600);
+			right_catapult.move_velocity(600);
+		}
+
+
 		double value = left_catapult.get_position();
 		double value3 = left_catapult.get_target_position();
 		std::string thingy = std::to_string(value);
@@ -248,11 +282,14 @@ void opcontrol() {
 
 		//Intake
 		if(controller.get_digital(DIGITAL_L1) && intakeLock == 0){
-			Intake.move(-127);
+			Intake_1.move(-127);
+			Intake_2.move(-127);
 		} else if (controller.get_digital(DIGITAL_L2) && intakeLock == 0){
-			Intake.move(90);
+			Intake_1.move(90);
+			Intake_2.move(90);
 		} else {
-			Intake.brake();
+			Intake_1.brake();
+			Intake_2.brake();
 		}
 
 		//For toggle
@@ -270,7 +307,6 @@ void opcontrol() {
     	} else if (intakeState == intake) {
       		Intake.move(80);
     	} */
-
 
 
 		pros::delay(20);
