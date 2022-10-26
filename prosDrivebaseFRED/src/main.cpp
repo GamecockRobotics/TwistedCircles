@@ -1,4 +1,7 @@
 #include "main.h"
+#include "pros/adi.hpp"
+#include "pros/llemu.hpp"
+#include <iostream>
 #include <string>
 
 #define LEFT_MTR1_PORT 1
@@ -7,16 +10,17 @@
 #define RIGHT_MTR1_PORT 8
 #define RIGHT_MTR2_PORT 9
 #define RIGHT_MTR3_PORT 10
-#define SLIPGEAR_BUMPER 'a'
+#define SLIPGEAR_BUMPER 'h'
 #define LEFT_CATAPULT_PORT 11
 #define RIGHT_CATAPULT_PORT 12
-#define INTAKE_PORT 5
+#define INTAKE_PORT_1 5
+#define INTAKE_PORT_2 7
 #define CATAPULT_MAX 600
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
 
-pros::Controller controller(pros::E_CONTROLLER_MASTER);
+	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	pros::Motor right_mtr1(RIGHT_MTR1_PORT, true);
 	pros::Motor right_mtr2(RIGHT_MTR2_PORT);
 	pros::Motor right_mtr3(RIGHT_MTR3_PORT,true);
@@ -25,8 +29,8 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	pros::Motor left_mtr3(LEFT_MTR3_PORT);
 	pros::Motor left_catapult(LEFT_CATAPULT_PORT,MOTOR_GEAR_RED);
 	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
-	pros::Motor Intake(INTAKE_PORT);
-	
+	pros::Motor Intake_1(INTAKE_PORT_1);
+	pros::Motor Intake_2(INTAKE_PORT_2, true);
 	
 	//Bumpers and switches example
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
@@ -67,7 +71,8 @@ void initialize() {
 	
 	left_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
 	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
-	Intake.set_brake_mode(MOTOR_BRAKE_COAST);
+	Intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
+	Intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
 }
 
 /**
@@ -99,7 +104,10 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+
+
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -117,50 +125,8 @@ void autonomous() {}
 
 void toggle() { intakeState = intakeState == intake ? stopped : intake; }
 
-void r1pressed(){
-	
-}
-
-void opcontrol() {
-	/*
-	pros::Controller controller(pros::E_CONTROLLER_MASTER);
-	pros::Motor right_mtr1(RIGHT_MTR1_PORT, true);
-	pros::Motor right_mtr2(RIGHT_MTR2_PORT);
-	pros::Motor right_mtr3(RIGHT_MTR3_PORT,true);
-	pros::Motor left_mtr1(LEFT_MTR1_PORT);
-	pros::Motor left_mtr2(LEFT_MTR2_PORT,true);
-	pros::Motor left_mtr3(LEFT_MTR3_PORT);
-	pros::Motor left_catapult(LEFT_CATAPULT_PORT,MOTOR_GEAR_RED);
-	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
-	pros::Motor Intake(INTAKE_PORT);
-	left_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
-	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
-	Intake.set_brake_mode(MOTOR_BRAKE_COAST);
-	
-	//Bumpers and switches example
-	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
-	*/
-	int cataFlag = 0;
-	int intakeLock = 0;
-	int i = 0;
-	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
-
-		//Base SplitArcade Controls with pros
-		/*
-		int power = controller.get_analog(ANALOG_LEFT_Y);
-		int turn = controller.get_analog(ANALOG_RIGHT_Y);
-		int right = power - turn;
-		int left = power+turn;
-		right_mtr1.move(right);
-		right_mtr2.move(right);
-		right_mtr3.move(right);
-		left_mtr1.move(left);
-		left_mtr2.move(left);
-		left_mtr3.move(left);*/
-
+int driveTask(){
+	while(true){
 		//Base Tank Controls
 		int left = controller.get_analog(ANALOG_LEFT_Y);
 		int right = controller.get_analog(ANALOG_RIGHT_Y);
@@ -185,45 +151,61 @@ void opcontrol() {
 			left_mtr3.brake();
 		}
 
+	
+	}
+	
+	return 0;
+}
 
-		//Catapult Controls
+void opcontrol() {
+	int cataFlag = 0;
+	int intakeLock = 0;
+	int i = 0;
+	pros::Task drive(driveTask);
+	while (true) {
+		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
+		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
+		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
+
+		//Base SplitArcade Controls with pros
 		/*
-		if(controller.get_digital(DIGITAL_R1)){
+		int power = controller.get_analog(ANALOG_LEFT_Y);
+		int turn = controller.get_analog(ANALOG_RIGHT_Y);
+		int right = power - turn;
+		int left = power+turn;
+		right_mtr1.move(right);
+		right_mtr2.move(right);
+		right_mtr3.move(right);
+		left_mtr1.move(left);
+		left_mtr2.move(left);
+		left_mtr3.move(left);*/
+
+		
+
+		// Catapult pull back on Button Sensor
+		if (!SlipGearSensor.get_value()) {
+			cataFlag = 1;
 			left_catapult.move_velocity(600);
 			right_catapult.move_velocity(600);
-		} else if (controller.get_digital(DIGITAL_R2)){
-			left_catapult.move_velocity(-600);
-			right_catapult.move_velocity(-600);
-		} else {
+			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+		}
+		else if (SlipGearSensor.get_value()) {
+			cataFlag = 0;
+			intakeLock = 0;
 			left_catapult.brake();
 			right_catapult.brake();
-		}*/
+			pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+		}
 		
-		if(controller.get_digital(DIGITAL_B)){
+		pros::lcd::set_text(3, std::to_string(SlipGearSensor.get_value()));
+
+		if(controller.get_digital(DIGITAL_B) && cataFlag == 0){
 			cataFlag = 0;
 			intakeLock = 1;
 			left_catapult.move_velocity(600);
 			right_catapult.move_velocity(600);
-		} else if(controller.get_digital(DIGITAL_R1)){
-			cataFlag = 1;
-			intakeLock = 1;
-			//left_catapult.tare_position();
-			//right_catapult.tare_position();
-			left_catapult.move_relative(2.5, CATAPULT_MAX);
-			right_catapult.move_relative(2.5, CATAPULT_MAX);
-			int value = right_catapult.get_position();
-			std::string s = std::to_string(value);
-			int value2 = left_catapult.get_position();
-			std::string s2 = std::to_string(value2);
-			//pros::lcd::set_text(4, "RIGHTCATA: " + s);
-			//pros::lcd::set_text(6, "LEFTCATA: " + s2);
-			//pros::delay(100);
-			
-		} else if(cataFlag == 0 && !(controller.get_digital(DIGITAL_B))) {
-			intakeLock = 0;
-			left_catapult.brake();
-			right_catapult.brake();
 		}
+
 
 		double value = left_catapult.get_position();
 		double value3 = left_catapult.get_target_position();
@@ -248,11 +230,17 @@ void opcontrol() {
 
 		//Intake
 		if(controller.get_digital(DIGITAL_L1) && intakeLock == 0){
-			Intake.move(-127);
-		} else if (controller.get_digital(DIGITAL_L2) && intakeLock == 0){
-			Intake.move(90);
+			Intake_1.move(-127);
+			Intake_2.move(-127);
+		}else if (controller.get_digital(DIGITAL_L2) && intakeLock == 0){
+			Intake_1.move(-100);
+			Intake_2.move(-100);
+		} else if (controller.get_digital(DIGITAL_DOWN) && intakeLock == 0){
+			Intake_1.move(90);
+			Intake_2.move(90);
 		} else {
-			Intake.brake();
+			Intake_1.brake();
+			Intake_2.brake();
 		}
 
 		//For toggle
@@ -270,7 +258,6 @@ void opcontrol() {
     	} else if (intakeState == intake) {
       		Intake.move(80);
     	} */
-
 
 
 		pros::delay(20);
