@@ -21,6 +21,9 @@
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
+enum turnType{left, right};
+
+
 
 	pros::Controller controller(pros::E_CONTROLLER_MASTER);
 	pros::Motor right_mtr1(RIGHT_MTR1_PORT, true);
@@ -125,31 +128,34 @@ void drivePID(std::string dir, float distance){
 
 }
 
-void turn(std::string dir, float deg) {
+void turn(turnType dir, float deg) {
 	
 
   float error = deg;
   float prevError = deg;
   float totalError = 0;
   const float threshold = 2.0;
-  const float kp = 0.50;
-  const float kd = 0.10;
-  const float ki = 0.0001;
+  const float kp = 0.10;
+  const float kd = 0.00;
+  const float ki = 0.000;
   gyro.reset();
+  pros::lcd::set_text(2,std::to_string(gyro.reset()));
   std::string first = std::to_string(gyro.get_value());
   pros::lcd::set_text(4, "Gyro Value: " + first);
-  pros::delay(3000);
+  pros::delay(5000);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
     int speed = kp * error + kd * (prevError - error) + ki * totalError;
-    left_mtr1.move(dir == "left" ? -1*speed : speed);
-    left_mtr2.move(dir == "left" ? -1*speed : speed);
-    left_mtr3.move(dir == "left" ? -1*speed : speed);
-    right_mtr1.move(dir == "right" ? -1*speed : speed);
-    right_mtr2.move(dir == "right" ? -1*speed : speed);
-    right_mtr3.move(dir == "right" ? -1*speed : speed);
+    left_mtr1.move(dir == left ? -speed : speed);
+    left_mtr2.move(dir == left ? -speed : speed);
+    left_mtr3.move(dir == left ? -speed : speed);
+    right_mtr1.move(dir == right ? -speed : speed);
+    right_mtr2.move(dir == right ? -speed : speed);
+    right_mtr3.move(dir == right ? -speed : speed);
     pros::delay(200);
     prevError = error;
-    error = deg - fabs(gyro.get_value()*10);
+	std::string second = std::to_string(gyro.get_value());
+  	pros::lcd::set_text(5, "Gyro Value In while: " + second);
+    error = deg - fabs((float)gyro.get_value());
 	std::string errorInWhile = std::to_string(error);
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
     totalError = totalError + (fabs(error) < 10 ? error : 0);
@@ -164,8 +170,9 @@ void turn(std::string dir, float deg) {
 
 
 void autonomous() {
-	turn("right", 90);
-	drive(50, 2);
+	turn(left, 200);
+
+	//drive(50, 1);
 
 
 }
