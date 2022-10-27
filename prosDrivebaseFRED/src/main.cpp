@@ -79,6 +79,7 @@ void initialize() {
 	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
 	Intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
 	Intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
+	gyro.reset();
 }
 
 /**
@@ -125,14 +126,19 @@ void drivePID(std::string dir, float distance){
 }
 
 void turn(std::string dir, float deg) {
-  float error = deg*10;
-  float prevError = deg*10;
+	
+
+  float error = deg;
+  float prevError = deg;
   float totalError = 0;
   const float threshold = 2.0;
-  const float kp = 0.10;
-  const float kd = 0.00;
-  const float ki = 0.00;
+  const float kp = 0.50;
+  const float kd = 0.10;
+  const float ki = 0.0001;
   gyro.reset();
+  std::string first = std::to_string(gyro.get_value());
+  pros::lcd::set_text(4, "Gyro Value: " + first);
+  pros::delay(3000);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
     int speed = kp * error + kd * (prevError - error) + ki * totalError;
     left_mtr1.move(dir == "left" ? -1*speed : speed);
@@ -143,8 +149,9 @@ void turn(std::string dir, float deg) {
     right_mtr3.move(dir == "right" ? -1*speed : speed);
     pros::delay(200);
     prevError = error;
-    error = deg - fabs(gyro.get_value());
-
+    error = deg - fabs(gyro.get_value()*10);
+	std::string errorInWhile = std::to_string(error);
+  	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
     totalError = totalError + (fabs(error) < 10 ? error : 0);
   }
   right_mtr1.brake();
@@ -157,8 +164,7 @@ void turn(std::string dir, float deg) {
 
 
 void autonomous() {
-
-	turn("left", 360);
+	turn("right", 90);
 	drive(50, 2);
 
 
