@@ -1,6 +1,8 @@
 #include "main.h"
 #include "pros/adi.hpp"
 #include "pros/llemu.hpp"
+#include "pros/rotation.hpp"
+#include "pros/rtos.hpp"
 #include <iostream>
 #include <string>
 
@@ -36,7 +38,7 @@ enum turnType{left, right};
 	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
 	pros::Motor Intake_1(INTAKE_PORT_1);
 	pros::Motor Intake_2(INTAKE_PORT_2, true);
-	pros::ADIGyro gyro (GYRO_PORT);
+	pros::Imu gyro (GYRO_PORT);
 	pros::ADIDigitalOut launcher(LAUNCHER_PORT);
 	
 	//Bumpers and switches example
@@ -82,7 +84,6 @@ void initialize() {
 	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
 	Intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
 	Intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
-	gyro.reset();
 }
 
 /**
@@ -128,23 +129,20 @@ void drivePID(std::string dir, float distance){
 
 }
 
-void turn(turnType dir, float deg) {
+void turn(turnType dir, int32_t deg) {
 	
-
+  float initialValue = gyro.get_rotation();
   float error = deg;
   float prevError = deg;
   float totalError = 0;
   const float threshold = 2.0;
-  const float kp = 0.10;
-  const float kd = 0.00;
+  const float kp = 2.1;
+  const float kd = 1.65;
   const float ki = 0.000;
-  gyro.reset();
-  pros::lcd::set_text(2,std::to_string(gyro.reset()));
-  std::string first = std::to_string(gyro.get_value());
+  std::string first = std::to_string(gyro.get_rotation());
   pros::lcd::set_text(4, "Gyro Value: " + first);
-  pros::delay(5000);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
-    int speed = kp * error + kd * (prevError - error) + ki * totalError;
+    int speed = kp * error + kd * (error - prevError) + ki * totalError;
     left_mtr1.move(dir == left ? -speed : speed);
     left_mtr2.move(dir == left ? -speed : speed);
     left_mtr3.move(dir == left ? -speed : speed);
@@ -153,12 +151,12 @@ void turn(turnType dir, float deg) {
     right_mtr3.move(dir == right ? -speed : speed);
     pros::delay(200);
     prevError = error;
-	std::string second = std::to_string(gyro.get_value());
+	std::string second = std::to_string((float)gyro.get_rotation());
   	pros::lcd::set_text(5, "Gyro Value In while: " + second);
-    error = deg - fabs((float)gyro.get_value());
+    error = deg - (fabs((float)gyro.get_rotation()) - fabs(initialValue));
 	std::string errorInWhile = std::to_string(error);
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
-    totalError = totalError + (fabs(error) < 10 ? error : 0);
+    totalError += (fabs(error) < 10 ? error : 0);
   }
   right_mtr1.brake();
   right_mtr2.brake();
@@ -170,8 +168,8 @@ void turn(turnType dir, float deg) {
 
 
 void autonomous() {
-	turn(left, 200);
-
+	turn(left, 360);
+	pros::delay(1000);
 	//drive(50, 1);
 
 
