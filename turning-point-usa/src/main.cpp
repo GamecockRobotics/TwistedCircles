@@ -1,24 +1,30 @@
 #include "main.h"
+#include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
+#include "pros/motors.hpp"
 #include "pros/rtos.hpp"
 #include <string>
 
 
 #define CHASSIS_L1_PORT 9
-#define CHASSIS_L2_PORT 11
-#define CHASSIS_L3_PORT 15
+#define CHASSIS_L2_PORT 15
+#define CHASSIS_L3_PORT 13
 #define CHASSIS_R1_PORT 1
 #define CHASSIS_R2_PORT 6
-#define CHASSIS_R3_PORT 10
+#define CHASSIS_R3_PORT 20
 #define INTAKE_PORT 5
 #define FLYWHEEL_PORT 16
+#define ROLLER_PORT 4
+#define INDEX_PORT 18
+
+
 #define FLYWHEEL_EPSILON 20
 enum IntakeDirection { in, stop, out };
 enum FlywheelSpeed { low, med, high };
 FlywheelSpeed flywheelSpeed = low;
 IntakeDirection intakeState = stop;
-int rightTarget = 0, leftTarget = 0, flywheelTarget = 0;
+int flywheelTarget = 0, indexerTarget = 0;
 
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -28,8 +34,11 @@ pros::Motor chassis_r3(CHASSIS_R3_PORT);
 pros::Motor chassis_l1(CHASSIS_L1_PORT, true);
 pros::Motor chassis_l2(CHASSIS_L2_PORT, true);
 pros::Motor chassis_l3(CHASSIS_L3_PORT, true);
-pros::Motor intake(INTAKE_PORT);
+pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT, true);
+pros::Motor indexer(INDEX_PORT);
+pros::Motor roller(ROLLER_PORT);
+
 	
 
 /**
@@ -39,6 +48,7 @@ pros::Motor flywheel(FLYWHEEL_PORT, true);
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	pros::lcd::initialize();
 	pros::c::motor_tare_position(CHASSIS_L1_PORT);
 	pros::c::motor_tare_position(CHASSIS_R1_PORT);
 	
@@ -80,19 +90,6 @@ void competition_initialize() {}
  */
 void autonomous() {}
 
-
-/**
- * Sets the intakeState
- * A launches the disk
- * R1 toggles the intake between on and off
- *
- * @param flag to ensure toggle exactly once per button press
- * @return new flag value
- */
-bool toggleIntake(bool flag) { 
-	return true;
-}
-
 void driverFlywheel() {
 	if (controller.get_digital(DIGITAL_B)) {
 		
@@ -107,38 +104,24 @@ void driverFlywheel() {
 	}
 }
 
-/**
- * Task for controlling chassis during driver control
- * Operates asynchronously to main loop
- * Uses PID to optimize acceleration and deceleration
- */
-int driveTask() {
-	double kp = 0.6, kd = 0.24, ki = 0.0;
-  	double rightP = 0, leftP = 0, rightD = 0, leftD = 0, rightI = 0, leftI = 0;
-  	double prevRightSpeed = 0, prevLeftSpeed = 0, rightSpeed = 0, leftSpeed = 0;
-  	while (true) {
-		rightI += ki*rightP/kp;
-		rightP = kp*(rightTarget-rightSpeed);
-		rightD = kd*(prevRightSpeed-rightSpeed);
-		prevRightSpeed = rightSpeed;
-		leftI += ki*rightP/kp;
-		leftP = kp*(leftTarget-leftSpeed);
-		leftD = kd*(prevLeftSpeed-leftSpeed);
-		prevLeftSpeed = leftSpeed;
-		rightSpeed += rightSpeed == rightTarget ? 0 : rightP + rightI + rightD ;
-		leftSpeed += (leftSpeed == leftTarget) ? 0 : leftP + leftI + leftD;
-		chassis_l1.move(leftSpeed);
-		chassis_l2.move(leftSpeed);
-		chassis_l3.move(leftSpeed);
-		chassis_r1.move(rightSpeed);
-		chassis_r2.move(rightSpeed);
-		chassis_r3.move(rightSpeed);
-		pros::delay(10);
-	}
-	return 0;
+bool checkFlywheelSpeed(int speed) {
+	return 18*flywheel.get_actual_velocity() > speed;
 }
 
-
+void shoot() {
+	indexer = indexerTarget;
+	if (indexerTarget == 0 && checkFlywheelSpeed(2500)) {
+		indexerTarget = 30;
+		intakeState = out;
+	}
+	if (indexerTarget == 30 && indexer.get_efficiency() < 5) {
+		indexerTarget = -30;
+		intakeState = in;
+	}
+	if (indexerTarget == -30 && indexer.get_efficiency() < 5) {
+		indexerTarget = 0;
+	}
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -155,7 +138,7 @@ int driveTask() {
  */
 void opcontrol() {
 	bool intakeFlag = true;
-	pros::Task drive(driveTask);
+	int leftSpeed = 0, rightSpeed = 0;
 	while (true) {
 		
 		/** Arcade Controls */
@@ -165,13 +148,19 @@ void opcontrol() {
 		// int leftSpeed = power + turn;
 
 		/** Base Tank Controls */
-		leftTarget = abs(controller.get_analog(ANALOG_LEFT_Y)) > 5 ? controller.get_analog(ANALOG_LEFT_Y) : 0;
-		rightTarget = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 5 ? controller.get_analog(ANALOG_RIGHT_Y) : 0;
+		leftSpeed = abs(controller.get_analog(ANALOG_LEFT_Y)) > 5 ? controller.get_analog(ANALOG_LEFT_Y) : 0;
+		rightSpeed = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 5 ? controller.get_analog(ANALOG_RIGHT_Y) : 0;
 
-		//Intake
+		chassis_l1.move(leftSpeed);
+		chassis_l2.move(leftSpeed);
+		chassis_l3.move(leftSpeed);
+		chassis_r1.move(rightSpeed);
+		chassis_r2.move(rightSpeed);
+		chassis_r3.move(rightSpeed);
 
-		if (controller.get_digital(DIGITAL_A)){
-			intakeState = out;
+		// Intake and Indexer
+		if (controller.get_digital(DIGITAL_A) || indexerTarget != 0){
+			shoot();
 			intakeFlag = true;
 		} else if (controller.get_digital(DIGITAL_R1)){
 			intakeState = (intakeState == in) == intakeFlag ? stop : in;
@@ -180,15 +169,19 @@ void opcontrol() {
 			intakeFlag = true;
 		}
 
+
+
 		if (intakeState == in) {
 			intake.move(127);
+			indexer.move(30);
 		} else if (intakeState == out) {
 			intake.move(-127);
+			indexer.move(-30);
 		} else {
 			intake.brake();
 		}
-
-		flywheel.move(100);
+		pros::lcd::set_text(7, std::to_string(flywheel.get_actual_velocity()));
+		flywheel.move(127);
 
 		pros::delay(20);
 	}
