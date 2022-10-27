@@ -302,11 +302,7 @@ void opcontrol() {
 			&& controller.get_digital(DIGITAL_B) && controller.get_digital(DIGITAL_A)){
 				launcher.set_value(launcherState);
 		}
-		//if(controller.get_digital(DIGITAL_A)){
-		//		launcher.set_value(launcherState);
-		//}
-
-
+		
 		//For toggle
 		/*
 		if(controller.get_digital(DIGITAL_L1)){
