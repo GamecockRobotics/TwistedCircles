@@ -16,6 +16,8 @@
 #define INTAKE_PORT_1 5
 #define INTAKE_PORT_2 7
 #define CATAPULT_MAX 600
+#define LAUNCHER_PORT 'g'
+#define GYRO_PORT 13
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
@@ -31,9 +33,13 @@ intakeDirection intakeState = stopped;
 	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
 	pros::Motor Intake_1(INTAKE_PORT_1);
 	pros::Motor Intake_2(INTAKE_PORT_2, true);
+	pros::ADIGyro gyro (GYRO_PORT);
+	pros::ADIDigitalOut launcher(LAUNCHER_PORT);
 	
 	//Bumpers and switches example
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
+
+	bool launcherState = true;
 
 /**
  * A callback function for LLEMU's center button.
@@ -104,7 +110,56 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
+
+void drive(int power, float distance){
+	left_mtr1.move_absolute(distance, power);
+	left_mtr2.move_absolute(distance, power);
+	left_mtr3.move_absolute(distance, power);
+	right_mtr1.move_absolute(distance, power);
+	right_mtr2.move_absolute(distance,power);
+	right_mtr3.move_absolute(distance, power);
+}
+
+void drivePID(std::string dir, float distance){
+
+}
+
+void turn(std::string dir, float deg) {
+  float error = deg*10;
+  float prevError = deg*10;
+  float totalError = 0;
+  const float threshold = 2.0;
+  const float kp = 0.10;
+  const float kd = 0.00;
+  const float ki = 0.00;
+  gyro.reset();
+  while (fabs(error) > threshold || fabs(prevError) > threshold) {
+    int speed = kp * error + kd * (prevError - error) + ki * totalError;
+    left_mtr1.move(dir == "left" ? -1*speed : speed);
+    left_mtr2.move(dir == "left" ? -1*speed : speed);
+    left_mtr3.move(dir == "left" ? -1*speed : speed);
+    right_mtr1.move(dir == "right" ? -1*speed : speed);
+    right_mtr2.move(dir == "right" ? -1*speed : speed);
+    right_mtr3.move(dir == "right" ? -1*speed : speed);
+    pros::delay(200);
+    prevError = error;
+    error = deg - fabs(gyro.get_value());
+
+    totalError = totalError + (fabs(error) < 10 ? error : 0);
+  }
+  right_mtr1.brake();
+  right_mtr2.brake();
+  right_mtr3.brake();
+  left_mtr1.brake();
+  left_mtr2.brake();
+  left_mtr3.brake();
+}
+
+
 void autonomous() {
+
+	turn("left", 360);
+	drive(50, 2);
 
 
 }
@@ -199,7 +254,7 @@ void opcontrol() {
 		
 		pros::lcd::set_text(3, std::to_string(SlipGearSensor.get_value()));
 
-		if(controller.get_digital(DIGITAL_B) && cataFlag == 0){
+		if(controller.get_digital(DIGITAL_R1) && cataFlag == 0){
 			cataFlag = 0;
 			intakeLock = 1;
 			left_catapult.move_velocity(600);
@@ -233,15 +288,24 @@ void opcontrol() {
 			Intake_1.move(-127);
 			Intake_2.move(-127);
 		}else if (controller.get_digital(DIGITAL_L2) && intakeLock == 0){
-			Intake_1.move(-100);
-			Intake_2.move(-100);
-		} else if (controller.get_digital(DIGITAL_DOWN) && intakeLock == 0){
-			Intake_1.move(90);
-			Intake_2.move(90);
+			Intake_1.move(127);
+			Intake_2.move(127);
 		} else {
 			Intake_1.brake();
 			Intake_2.brake();
 		}
+
+		//String Launcher
+		
+		if(controller.get_digital(DIGITAL_RIGHT) && controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_DOWN)
+			&& controller.get_digital(DIGITAL_LEFT) && controller.get_digital(DIGITAL_Y) && controller.get_digital(DIGITAL_X) 
+			&& controller.get_digital(DIGITAL_B) && controller.get_digital(DIGITAL_A)){
+				launcher.set_value(launcherState);
+		}
+		//if(controller.get_digital(DIGITAL_A)){
+		//		launcher.set_value(launcherState);
+		//}
+
 
 		//For toggle
 		/*
