@@ -84,6 +84,13 @@ void initialize() {
 	right_catapult.set_brake_mode(MOTOR_BRAKE_HOLD);
 	Intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
 	Intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
+
+	left_mtr1.tare_position();
+	left_mtr2.tare_position();
+	left_mtr3.tare_position();
+	right_mtr1.tare_position();
+	right_mtr2.tare_position();
+	right_mtr3.tare_position();
 }
 
 /**
@@ -138,7 +145,7 @@ void turn(turnType dir, int32_t deg) {
   const float threshold = 2.0;
   const float kp = 2.1;
   const float kd = 1.65;
-  const float ki = 0.000;
+  const float ki = 0.07;
   std::string first = std::to_string(gyro.get_rotation());
   pros::lcd::set_text(4, "Gyro Value: " + first);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
@@ -158,6 +165,13 @@ void turn(turnType dir, int32_t deg) {
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
     totalError += (fabs(error) < 10 ? error : 0);
   }
+  pros::lcd::set_text(7, "Im out of turn PID");
+  	left_mtr1.move(0);
+	left_mtr2.move(0);
+    left_mtr3.move(0);
+    right_mtr1.move(0);
+    right_mtr2.move(0);
+    right_mtr3.move(0);
   right_mtr1.brake();
   right_mtr2.brake();
   right_mtr3.brake();
@@ -168,9 +182,10 @@ void turn(turnType dir, int32_t deg) {
 
 
 void autonomous() {
-	turn(left, 360);
+	turn(left, 90);
 	pros::delay(1000);
-	//drive(50, 1);
+
+	//drive(-50, -1);
 
 
 }
