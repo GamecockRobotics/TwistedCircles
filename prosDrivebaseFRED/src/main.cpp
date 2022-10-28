@@ -122,6 +122,14 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
+void tareMotors(){
+	left_mtr1.tare_position();
+	left_mtr2.tare_position();
+	left_mtr3.tare_position();
+	right_mtr1.tare_position();
+	right_mtr2.tare_position();
+	right_mtr3.tare_position();
+}
 
 void drive(int power, float distance){
 	left_mtr1.move_absolute(distance, power);
@@ -180,10 +188,20 @@ void turn(turnType dir, int32_t deg) {
   left_mtr3.brake();
 }
 
+void runRoller(){
+	Intake_1.move(60);
+	Intake_2.move(60);
+	pros::delay(1000);
+	Intake_1.move(0);
+	Intake_2.move(0);
+}
 
 void autonomous() {
-	turn(left, 90);
-	pros::delay(1000);
+	drive(-80, -1);
+	runRoller();
+	
+	//turn(left, 90);
+	//pros::delay(1000);
 
 	//drive(-50, -1);
 
