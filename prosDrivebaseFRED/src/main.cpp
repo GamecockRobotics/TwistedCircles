@@ -132,12 +132,18 @@ void tareMotors(){
 }
 
 void drive(int power, float distance){
+	tareMotors();
 	left_mtr1.move_absolute(distance, power);
 	left_mtr2.move_absolute(distance, power);
 	left_mtr3.move_absolute(distance, power);
 	right_mtr1.move_absolute(distance, power);
 	right_mtr2.move_absolute(distance,power);
 	right_mtr3.move_absolute(distance, power);
+	while (!((left_mtr1.get_position() < distance+5) && (left_mtr1.get_position() > distance-5))) {
+    // Continue running this loop as long as the motor is not within +-5 units of its goal
+    pros::delay(2);
+  }
+	
 }
 
 void drivePID(std::string dir, float distance){
@@ -197,8 +203,8 @@ void runRoller(){
 }
 
 void autonomous() {
-	drive(-80, -1);
-	runRoller();
+	drive(-120, -1000);
+	//runRoller();
 	
 	//turn(left, 90);
 	//pros::delay(1000);
