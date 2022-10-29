@@ -1,4 +1,5 @@
 #include "main.h"
+#include "pros/imu.hpp"
 #include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
@@ -17,12 +18,12 @@
 #define FLYWHEEL_PORT 16
 #define ROLLER_PORT 4
 #define INDEX_PORT 18
+#define GYRO_PORT 19
 
 
 #define FLYWHEEL_EPSILON 20
 enum IntakeDirection { in, stop, out };
-enum FlywheelSpeed { low, med, high };
-FlywheelSpeed flywheelSpeed = low;
+enum TurnType {left, right};
 IntakeDirection intakeState = stop;
 int flywheelTarget = 0, indexerTarget = 0;
 
@@ -38,6 +39,7 @@ pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT, true);
 pros::Motor indexer(INDEX_PORT);
 pros::Motor roller(ROLLER_PORT);
+pros::Imu gyro(GYRO_PORT);
 
 	
 
@@ -77,6 +79,37 @@ void disabled() {}
  */
 void competition_initialize() {}
 
+
+void tareMotors(){
+	chassis_l1.tare_position();
+	chassis_l2.tare_position();
+	chassis_l3.tare_position();
+	chassis_r1.tare_position();
+	chassis_r2.tare_position();
+	chassis_r3.tare_position();
+}
+
+void turn(TurnType dir , double deg){
+	tareMotors();
+
+	double distance = (dir == left ? -1:1)* 3.8 * deg;
+
+	pros::lcd::set_text(1, std::to_string(distance));
+
+	chassis_l1.move_absolute(distance, 100);
+	chassis_l2.move_absolute(distance, 100);
+	chassis_l3.move_absolute(distance, 100);
+	chassis_r1.move_absolute(-distance, 100);
+	chassis_r2.move_absolute(-distance, 100);
+	chassis_r3.move_absolute(-distance, 100);
+	while (!((chassis_l1.get_position() < distance+5) && (chassis_l1.get_position() > distance-5))) {
+    // Continue running this loop as long as the motor is not within +-5 units of its goal
+    pros::delay(2);
+  }
+	
+}
+
+
 /**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -88,20 +121,9 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
 
-void driverFlywheel() {
-	if (controller.get_digital(DIGITAL_B)) {
-		
-	} else if (controller.get_digital(DIGITAL_A)) {
-
-	} else if (controller.get_digital(DIGITAL_X)) {
-
-	}
-	flywheel.move_velocity(100);
-	if (fabs(flywheelTarget-flywheel.get_actual_velocity()) < FLYWHEEL_EPSILON) {
-
-	}
+	turn(left, 90);
 }
 
 bool checkFlywheelSpeed(int speed) {
@@ -110,17 +132,14 @@ bool checkFlywheelSpeed(int speed) {
 
 void shoot() {
 	indexer = indexerTarget;
-	if (indexerTarget == 0 && checkFlywheelSpeed(2500)) {
-		indexerTarget = 30;
-		intakeState = out;
-	}
-	if (indexerTarget == 30 && indexer.get_efficiency() < 5) {
-		indexerTarget = -30;
-		intakeState = in;
-	}
-	if (indexerTarget == -30 && indexer.get_efficiency() < 5) {
+	if (indexerTarget == 0 && checkFlywheelSpeed(2000)) {
+		indexerTarget = 127;
+	} else if (indexerTarget == 127 && indexer.get_efficiency() < 5) {
+		indexerTarget = -127;
+	} else if (indexerTarget == -127 && indexer.get_efficiency() < 5) {
 		indexerTarget = 0;
 	}
+
 }
 
 /**
@@ -173,14 +192,17 @@ void opcontrol() {
 
 		if (intakeState == in) {
 			intake.move(127);
-			indexer.move(30);
 		} else if (intakeState == out) {
 			intake.move(-127);
-			indexer.move(-30);
 		} else {
 			intake.brake();
 		}
-		pros::lcd::set_text(7, std::to_string(flywheel.get_actual_velocity()));
+
+		pros::lcd::set_text(2, "flywheel: " + std::to_string(flywheel.get_actual_velocity()*18));
+		pros::lcd::set_text(4, "indexer target: " + std::to_string(indexerTarget));
+		pros::lcd::set_text(6, "indexer efficiency: " + std::to_string(indexer.get_efficiency()));
+
+		
 		flywheel.move(127);
 
 		pros::delay(20);
