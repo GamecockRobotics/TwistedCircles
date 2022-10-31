@@ -94,21 +94,21 @@ void initialize() {
 	right_mtr2.tare_position();
 	right_mtr3.tare_position();
 
-	while (cataFlagAuto == 1) {
-		if (!SlipGearSensor.get_value()) {
-			cataFlagAuto = 1;
-			left_catapult.move_velocity(600);
-			right_catapult.move_velocity(600);
-			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-		}
-		else if (SlipGearSensor.get_value()) {
-			cataFlagAuto = 0;
-			//intakeLock = 0;
-			left_catapult.brake();
-			right_catapult.brake();
-			pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
-		}
-	}
+	// while (cataFlagAuto == 1) {
+	// 	if (!SlipGearSensor.get_value()) {
+	// 		cataFlagAuto = 1;
+	// 		left_catapult.move_velocity(600);
+	// 		right_catapult.move_velocity(600);
+	// 		pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+	// 	}
+	// 	else if (SlipGearSensor.get_value()) {
+	// 		cataFlagAuto = 0;
+	// 		//intakeLock = 0;
+	// 		left_catapult.brake();
+	// 		right_catapult.brake();
+	// 		pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+	// 	}
+	// }
 		
 }
 
@@ -247,6 +247,7 @@ void shoot(){
 			left_catapult.move_velocity(600);
 			right_catapult.move_velocity(600);
 			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+			
 		}
 		else if (SlipGearSensor.get_value()) {
 			cataFlagAuto = 0;
@@ -334,6 +335,7 @@ void opcontrol() {
 	int cataFlag = 0;
 	int intakeLock = 0;
 	int i = 0;
+	std::string buttonNum;
 	pros::Task drive(driveTask);
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
@@ -352,17 +354,15 @@ void opcontrol() {
 		left_mtr1.move(left);
 		left_mtr2.move(left);
 		left_mtr3.move(left);*/
-
-		
-
-		// Catapult pull back on Button Sensor
+		buttonNum = std::to_string(SlipGearSensor.get_value());
+		pros::screen::print(TEXT_MEDIUM, 1, "Sensor value: %3d", SlipGearSensor.get_value());
+		//Catapult pull back on Button Sensor
 		if (!SlipGearSensor.get_value()) {
 			cataFlag = 1;
 			left_catapult.move_velocity(600);
 			right_catapult.move_velocity(600);
 			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-		}
-		else if (SlipGearSensor.get_value()) {
+		} else if (SlipGearSensor.get_value()) {
 			cataFlag = 0;
 			intakeLock = 0;
 			left_catapult.brake();
