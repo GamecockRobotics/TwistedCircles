@@ -1,19 +1,81 @@
 #include "main.h"
+#include "pros/colors.h"
+#include "pros/rtos.hpp"
+#include <memory>
+#include "gui.h"
+#include "pros/screen.hpp"
 
-/**
- * A callback function for LLEMU's center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
- */
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
+
+enum GUI {alliance, auton, user, debug};
+GUI prevGUI = debug;
+GUI guiState = alliance;
+
+bool allianceColor;
+
+int redX0 = 20,  redX1 = 230, redY0 = 20, redY1 = 220;
+int bluX0 = 250, bluX1 = 460, bluY0 = 20, bluY1 = 220;
+
+int padding = 20, boxWidth = 95, boxHeight = 90;
+
+NamedFunction autons[] = {
+	NamedFunction{"Auton 1", auton1},
+	NamedFunction{"auton 2", auton2},
+	NamedFunction{"auton 3.0", auton3},
+};
+
+NamedFunction userControls = {
+
+};
+
+
+void draw_gui () {
+	pros::screen::erase();
+	switch (guiState) {
+		case alliance:
+			pros::screen::set_pen(COLOR_RED);
+			pros::screen::fill_rect(redX0, redY0, redX1, redY1);
+			pros::screen::set_pen(COLOR_BLUE);
+			pros::screen::fill_rect(bluX0, bluY0, bluX1, bluY1);
+		break;
+		case auton:
+			for (int i = 0; i < sizeof(autons)/sizeof(autons[0]); i++) {
+				pros::screen::set_pen(COLOR_GREEN);
+				pros::screen::fill_rect((i/2+1) *padding + i/2*boxWidth, padding + (i%2)*(padding+boxHeight), (i/2+1)*(padding + boxWidth), padding + (i%2)*(padding+boxHeight)+boxHeight);
+				pros::screen::set_pen(COLOR_WHITE);
+
+			}
+		break;
+		case user:
+		break;
+		case debug:
+		break;
 	}
+}
+
+void touch_gui () {
+	pros::screen_touch_status_s_t status = pros::screen::touch_status();
+	switch (guiState) {
+		case alliance:
+			if (redX0 < status.x && status.x < redX1 && redY0 < status.y && status.y < redY1) {
+				pros::screen::set_pen(COLOR_WHITE);
+				pros::screen::fill_rect(redX0, redY0, redX1, redY1);
+				guiState = auton;
+			} else if (bluX0 < status.x && status.x < bluX1 && bluY0 < status.y && status.y < bluY1) {
+				guiState = auton;
+			}
+			break;
+		case auton:
+		break;
+		case user:
+		break;
+		case debug:
+		break;
+	}
+	if (prevGUI != guiState) {
+		draw_gui();
+		prevGUI = guiState;
+	}
+
 }
 
 /**
@@ -22,12 +84,7 @@ void on_center_button() {
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
-void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
-
-	pros::lcd::register_btn1_cb(on_center_button);
-}
+void initialize() {}
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -60,6 +117,9 @@ void competition_initialize() {}
  */
 void autonomous() {}
 
+
+
+
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -74,20 +134,10 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::Motor left_mtr(1);
-	pros::Motor right_mtr(2);
-
+	pros::delay(20);
+	draw_gui();
 	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
-		int left = master.get_analog(ANALOG_LEFT_Y);
-		int right = master.get_analog(ANALOG_RIGHT_Y);
-
-		left_mtr = left;
-		right_mtr = right;
-
+   		pros::screen::touch_callback(touch_gui, TOUCH_PRESSED);
 		pros::delay(20);
 	}
 }
