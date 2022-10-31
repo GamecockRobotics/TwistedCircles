@@ -16,6 +16,7 @@
 #define CHASSIS_R3_PORT 20
 #define INTAKE_PORT 5
 #define FLYWHEEL_PORT 16
+#define TINY_FLY_WHEEL 3
 #define ROLLER_PORT 4
 #define INDEX_PORT 18
 #define GYRO_PORT 19
@@ -37,6 +38,7 @@ pros::Motor chassis_l2(CHASSIS_L2_PORT, true);
 pros::Motor chassis_l3(CHASSIS_L3_PORT, true);
 pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT, true);
+pros::Motor tiny_flywheel(TINY_FLY_WHEEL);
 pros::Motor indexer(INDEX_PORT);
 pros::Motor roller(ROLLER_PORT);
 pros::Imu gyro(GYRO_PORT);
@@ -55,7 +57,11 @@ void initialize() {
 	pros::c::motor_tare_position(CHASSIS_R1_PORT);
 	
 	pros::c::motor_set_encoder_units(CHASSIS_L1_PORT, pros::E_MOTOR_ENCODER_DEGREES);
+	pros::c::motor_set_encoder_units(CHASSIS_L2_PORT, pros::E_MOTOR_ENCODER_DEGREES);
+	pros::c::motor_set_encoder_units(CHASSIS_L3_PORT, pros::E_MOTOR_ENCODER_DEGREES);
 	pros::c::motor_set_encoder_units(CHASSIS_R1_PORT, pros::E_MOTOR_ENCODER_DEGREES);
+	pros::c::motor_set_encoder_units(CHASSIS_R2_PORT, pros::E_MOTOR_ENCODER_DEGREES);
+	pros::c::motor_set_encoder_units(CHASSIS_R3_PORT, pros::E_MOTOR_ENCODER_DEGREES);
 	
 	flywheel.set_brake_mode(MOTOR_BRAKE_HOLD);
 	intake.set_brake_mode(MOTOR_BRAKE_COAST);
@@ -89,6 +95,22 @@ void tareMotors(){
 	chassis_r3.tare_position();
 }
 
+void drive(int power, float distance){
+	tareMotors();
+	chassis_l1.move_absolute(distance, power);
+	chassis_l2.move_absolute(distance, power);
+	chassis_l3.move_absolute(distance, power);
+	chassis_r1.move_absolute(distance, power);
+	chassis_r2.move_absolute(distance,power);
+	chassis_r3.move_absolute(distance, power);
+	while (!(chassis_l1.get_actual_velocity() == 0)) {
+    // Continue running this loop as long as the motor is not within +-5 units of its goal
+    pros::delay(2);
+  }
+	
+}
+
+
 void turn(TurnType dir , double deg){
 	tareMotors();
 
@@ -121,24 +143,68 @@ void turn(TurnType dir , double deg){
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {
-
-	turn(left, 90);
+ 
+ void roll (int time) {
+	roller.move(-127);
+	pros::delay(time);
+	roller.brake();
 }
+
+void autonomous() {
+	// 450 is ~~ one tile
+	// Move to roller and spin it 
+
+	drive(127, 450);
+	pros::delay(100);
+	turn(left,90);
+	pros::delay(100);
+	drive(-127, 50);
+	pros::delay(100);
+	roll(250);
+	pros::delay(100);
+
+	/*
+	// Move from roller towards low goal to start pushing disks
+	drive(127, -50);
+	pros::delay(100);
+	turn(right, 90);			// TUNE
+	pros::delay(100);
+	drive(127, 1125);
+	pros::delay(100);
+	turn(right, 90);
+	pros::delay(100);
+	drive(127, 800);
+	pros::delay(100);
+	turn(right, 90);
+	pros::delay(100);
+
+	// Begin pushing disks into low goal
+	drive(127, -1350);
+	pros::delay(100);
+	*/
+
+
+	
+	//turn(left, 90);
+}
+
+
 
 bool checkFlywheelSpeed(int speed) {
 	return 18*flywheel.get_actual_velocity() > speed;
 }
 
 void shoot() {
-	indexer = indexerTarget;
-	if (indexerTarget == 0 && checkFlywheelSpeed(2000)) {
+	// Ray asked to remove the speed lock
+	if (indexerTarget == 0) {
 		indexerTarget = 127;
 	} else if (indexerTarget == 127 && indexer.get_efficiency() < 5) {
 		indexerTarget = -127;
 	} else if (indexerTarget == -127 && indexer.get_efficiency() < 5) {
 		indexerTarget = 0;
 	}
+	indexer = indexerTarget;
+
 
 }
 
@@ -189,6 +255,17 @@ void opcontrol() {
 		}
 
 
+		//Rollers
+		if (controller.get_digital(DIGITAL_UP)) {
+			roller = 127;
+		}
+		else if (controller.get_digital(DIGITAL_DOWN)) {
+			roller = -127;
+		}
+		else {
+			roller = 0;
+		}
+
 
 		if (intakeState == in) {
 			intake.move(127);
@@ -204,6 +281,7 @@ void opcontrol() {
 
 		
 		flywheel.move(127);
+		tiny_flywheel.move(127);
 
 		pros::delay(20);
 	}

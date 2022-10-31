@@ -24,6 +24,7 @@ enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
 enum turnType{left, right};
+enum direction{forward, backward};
 
 
 
@@ -45,6 +46,7 @@ enum turnType{left, right};
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
 
 	bool launcherState = true;
+	int cataFlagAuto = 1;
 
 /**
  * A callback function for LLEMU's center button.
@@ -91,6 +93,23 @@ void initialize() {
 	right_mtr1.tare_position();
 	right_mtr2.tare_position();
 	right_mtr3.tare_position();
+
+	while (cataFlagAuto == 1) {
+		if (!SlipGearSensor.get_value()) {
+			cataFlagAuto = 1;
+			left_catapult.move_velocity(600);
+			right_catapult.move_velocity(600);
+			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+		}
+		else if (SlipGearSensor.get_value()) {
+			cataFlagAuto = 0;
+			//intakeLock = 0;
+			left_catapult.brake();
+			right_catapult.brake();
+			pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+		}
+	}
+		
 }
 
 /**
@@ -159,7 +178,7 @@ void turn(turnType dir, int32_t deg) {
   const float threshold = 2.0;
   const float kp = 2.1;
   const float kd = 1.65;
-  const float ki = 0.07;
+  const float ki = 0.09;
   std::string first = std::to_string(gyro.get_rotation());
   pros::lcd::set_text(4, "Gyro Value: " + first);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
@@ -195,21 +214,70 @@ void turn(turnType dir, int32_t deg) {
 }
 
 void runRoller(){
-	Intake_1.move(60);
-	Intake_2.move(60);
+	Intake_1.move(70);
+	Intake_2.move(70);
 	pros::delay(1000);
 	Intake_1.move(0);
 	Intake_2.move(0);
 }
 
-void autonomous() {
-	drive(-120, -1000);
-	//runRoller();
-	
-	//turn(left, 90);
-	//pros::delay(1000);
+void runIntake(direction dir, float dis){
+	Intake_1 = -127;
+	Intake_2 = -127;
+	if (dir == forward){
+		drive(127, dis);
+	} else if (dir == backward){
+		drive(-127, -dis);
+	}
 
-	//drive(-50, -1);
+	Intake_1 = 0;
+	Intake_2 = 0;
+	
+}
+
+void shoot(){
+	left_catapult.move_velocity(600);
+	right_catapult.move_velocity(600);
+	cataFlagAuto = 0;
+
+	pros::delay(300);
+	while(cataFlagAuto == 1){
+		if (!SlipGearSensor.get_value()) {
+			cataFlagAuto = 1;
+			left_catapult.move_velocity(600);
+			right_catapult.move_velocity(600);
+			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+		}
+		else if (SlipGearSensor.get_value()) {
+			cataFlagAuto = 0;
+			left_catapult.brake();
+			right_catapult.brake();
+			pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+		}
+	}
+	
+
+}
+
+void autonomous() {
+	drive(-120, -50);
+	runRoller();
+	pros::delay(200);
+	drive(50, 50);
+	turn(right, 90);
+	
+	drive(127, 900);
+	pros::delay(200);
+	turn(left,270);
+	pros::delay(1000);
+	//pros::delay(20000);
+	/*
+	drive(127,9000);
+	turn(right, 45);
+	drive(127,2500);
+	turn(left,90);
+	shoot();*/
+
 
 
 }
