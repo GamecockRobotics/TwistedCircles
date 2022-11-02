@@ -2,6 +2,7 @@
 #include "pros/colors.h"
 #include "pros/rtos.hpp"
 #include <memory>
+#include <string>
 #include "gui.h"
 #include "pros/screen.hpp"
 
@@ -32,17 +33,15 @@ void draw_gui () {
 	pros::screen::erase();
 	switch (guiState) {
 		case alliance:
-			pros::screen::set_pen(COLOR_RED);
-			pros::screen::fill_rect(redX0, redY0, redX1, redY1);
-			pros::screen::set_pen(COLOR_BLUE);
-			pros::screen::fill_rect(bluX0, bluY0, bluX1, bluY1);
+			new Button(COLOR_RED, redX0, redY0, redX1 - redX0, redY1 - redY0);
+			new Button(COLOR_BLUE, bluX0, bluY0, bluX1 - bluX0, bluY1 - bluY0);
 		break;
 		case auton:
 			for (int i = 0; i < sizeof(autons)/sizeof(autons[0]); i++) {
 				pros::screen::set_pen(COLOR_GREEN);
-				pros::screen::fill_rect((i/2+1) *padding + i/2*boxWidth, padding + (i%2)*(padding+boxHeight), (i/2+1)*(padding + boxWidth), padding + (i%2)*(padding+boxHeight)+boxHeight);
+				new Button(COLOR_GREEN, (i/2+1) * padding + i/2*boxWidth, padding + (i%2)*(padding+boxHeight), (i/2+1)*(padding + boxWidth) - ((i/2+1) * padding + i/2*boxWidth), padding + (i%2)*(padding+boxHeight)+boxHeight - padding + (i%2)*(padding+boxHeight));
+				pros::screen::print(TEXT_SMALL, ((i/2+1)*(padding + boxWidth) - ((i/2+1) * padding + i/2*boxWidth)) / 2 + (i/2+1) * padding + i/2*boxWidth - 30, (padding + (i%2)*(padding+boxHeight)+boxHeight - padding + (i%2)*(padding+boxHeight)) / 2 + padding + (i%2)*(padding+boxHeight) - 5, "auton: %1d", i);
 				pros::screen::set_pen(COLOR_WHITE);
-
 			}
 		break;
 		case user:
