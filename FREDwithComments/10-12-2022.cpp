@@ -165,6 +165,7 @@ void opcontrol() {
 		int left = controller.get_analog(ANALOG_LEFT_Y);
 		int right = controller.get_analog(ANALOG_RIGHT_Y);
 		if(abs(right) > 5){
+            //mention the deadzone with this calculation
 			right = right -5 * (127/122);
 			right_mtr1.move(right);
 			right_mtr2.move(right);
