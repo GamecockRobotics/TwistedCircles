@@ -24,7 +24,7 @@ std::uint32_t alliance = 0XFF0000;
  * Enumerated value to select walls
  * Possible values are "left", "right", "top", "bottom", "none"
  */
-enum Wall {left, right, bottom, top, none};
+enum Wall {left, bottom, right, top, none};
 
 /**
  * Default values for sensors have the back sensors pointed towards the left 
@@ -47,7 +47,7 @@ Wall* selected_wall = &no_sensor;
  * @return a string equivalent of the wall enum
  */
 const char * sensor_to_string(Wall wall) {
-	return (const char *[]) {"LEFT","RIGHT","BOTTOM","TOP","NONE"}[wall];
+	return (const char *[]) {"LEFT","BOTTOM","RIGHT","TOP","NONE"}[wall];
 }
 
 /** 
@@ -175,13 +175,13 @@ void draw_gui() {
 		pros::screen::fill_rect(lorr?250:360,10,lorr?360:470,230);
 		pros::screen::set_pen(0X000000);
 		pros::screen::draw_rect(lorr?260:370,20,lorr?350:460,52);
-		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?290:400,30,"TOP");
+		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?290:400,30,"LEFT");
 		pros::screen::draw_rect(lorr?260:370,62,lorr?350:460,94);
 		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?275:385,72,"BOTTOM");
 		pros::screen::draw_rect(lorr?260:370,104,lorr?350:460,136);
-		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?286:396,114,"LEFT");
+		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?286:396,114,"RIGHT");
 		pros::screen::draw_rect(lorr?260:370,146,lorr?350:460,178);
-		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?282:392,156,"RIGHT");
+		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?282:392,156,"TOP");
 		pros::screen::draw_rect(lorr?260:370,188,lorr?350:460,220);
 		pros::screen::print(pros::E_TEXT_MEDIUM,lorr?286:396,198,"NONE");
 	} else {
@@ -218,7 +218,7 @@ void touch_gui () {
 	if (selected_wall != &no_sensor) {
 		if (screen_contains(status,lorr?260:370,20,lorr?350:460,52)) {
 			// If pressing the button labeled top, set the sensor to top wall
-			*selected_wall = top;
+			*selected_wall = left;
 			selected_wall = &no_sensor;
 		} else if (screen_contains(status,lorr?260:370,62,lorr?350:460,94)) {
 			// If pressing the button labeled bottom, set the sensor to bottom wall
@@ -226,11 +226,11 @@ void touch_gui () {
 			selected_wall = &no_sensor;
 		} else if (screen_contains(status,lorr?260:370,104,lorr?350:460,136)) {
 			// If pressing the button labeled left, set the sensor to left wall
-			*selected_wall = left;
+			*selected_wall = right;
 			selected_wall = &no_sensor;
 		} else if (screen_contains(status,lorr?260:370,146,lorr?350:460,178)) {
 			// If pressing the button labeled right, set the sensor to right wall
-			*selected_wall = right;
+			*selected_wall = top;
 			selected_wall = &no_sensor;
 		} else if (screen_contains(status,lorr?260:370,188,lorr?350:460,220)) {
 			// If pressing the button labeled none, set the sensor to none
@@ -273,6 +273,7 @@ void touch_gui () {
 	draw_gui();
 }
 
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -311,6 +312,9 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {}
+
+
+
 
 /**
  * Runs the operator control code. This function will be started in its own task
