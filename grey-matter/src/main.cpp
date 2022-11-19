@@ -35,28 +35,39 @@
 
 /**
  * Define physical Dimensions of Robot
- * All measurements are in millimeters and degrees
+ * All measurements are in millimeters
+ *
+ * Measurements are given in x and y coordinates
+ * Coordinates can be used in reference to each other to calculate the angle the robot is at
  */
 
-// Distance from Top Left Sensor to Measuring Point of Robot
+// Horizontal Distance from Top Left Sensor to Measuring Point of Robot
 int const tl_sensor_x = 0;
+// Vertical Distance from Top Left Sensor to Measuring Point of Robot
 int const tl_sensor_y = 0;
-// Distance from Top Right Sensor to Measuring Point of Robot
+// Horizontal Distance from Top Right Sensor to Measuring Point of Robot
 int const tr_sensor_x = 0;
+// Vertical Distance from Top Right Sensor to Measuring Point of Robot
 int const tr_sensor_y = 0;
-// Distance from Bottom Left Sensor to Measuring Point of Robot
+// Horizontal Distance from Bottom Left Sensor to Measuring Point of Robot
 int const bl_sensor_x = 0;
+// Vertical Distance from Bottom Left Sensor to Measuring Point of Robot
 int const bl_sensor_y = 0;
-// Distance from Bottom Right Sensor to Measuring Point of Robot
+// Horizontal Distance from Bottom Right Sensor to Measuring Point of Robot
 int const br_sensor_x = 0;
+// Vertical Distance from Bottom Right Sensor to Measuring Point of Robot
 int const br_sensor_y = 0;
-// Distance between Parallel Tracking Wheels 
-int const track_sensor_separation = 0;
+// Vertical Distance between Front Tracking Wheel and Measuring Point of Robot
+int const ft_sensor_y = 0;
+// Vertical Distance between Back Tracking Wheel and Measuring Point of Robot
+int const bt_sensor_y = 0;
 // Measurement of tracking Wheel Circumference
 int const track_wheel_circumference = 220;
 
-// Varaiables to keep track of the location and orientation of the robot
-int x_loc, y_loc;
+
+// Varaiables to keep track of the Location of the Robot
+int x_loc, y_loc = br_sensor_y;
+// Variable to keep track of the Orientation of the Robot
 float theta;
 
 // Define Controller
@@ -92,7 +103,12 @@ pros::ADIPotentiometer distance_rp(DISTANCE_RP_PORT);
  * Calibrates the Location of the robot
  */
 void calibrate_location() {
-	
+	// Find the 2 sensors that point at the same wall
+	// Calculate offset from wall and theta
+	// Find how that wall correlates to the coordinate plane
+	// Based on the wall that the two sensors are on edit theta accordingly
+	// Walls - Left: 0 Bottom: +90 Right: +180 Top: +270
+	// Robot - Back: 0 Left: +90 Front: +180 Right: +270
 }
 
 /**
