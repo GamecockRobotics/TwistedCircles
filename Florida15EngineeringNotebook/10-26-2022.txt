@@ -1,0 +1,29 @@
+CHANGELOG
+
+Changed Left Chassis 2 port from port 11 to port 15
+Changed Left Chassis 3 port from port 15 to port 13
+Changed Right Chassis 3 port from port 10 to port 20
+Added a port for the Roller and Indexer, ports 4 and 18 respectively
+
+Added a variable for the indexer target speed
+
+Reversed the Intake motor
+
+Added an LCD display to help with debugging
+
+Removed the toggle intake function and opted instead to keep the intake code in the main control loop
+Removed PID as pros has a built in PID function for driving straight
+
+Added a function to check the flywheel speed to ensure that the flywheel was going fast enough before shooting
+Added a shoot function that checks to make sure the flywheel is up to speed. If it is, it activates the indexer 
+until the indexer hits the physical stopping mechanism, then it returns back to its previous position.
+The algorithm utilizes the motor efficiency operation to detect when the motor is being physically stopped.
+
+Made chassis target speed local variables in the main control loop rather than global variables. They no 
+longer need to be global variables as we are using the built in PID function.
+
+Changed the intake system to access the shoot function when the intake is reversed. This is because the intake 
+is supposed to help index the disks into the flywheel
+
+Changed flywheel from 100 speed to 127 speed because 100 was not enough. Also displayed the flywheel speed on
+the lcd display.
