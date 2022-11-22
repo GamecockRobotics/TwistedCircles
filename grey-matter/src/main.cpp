@@ -16,10 +16,10 @@
 #define ROLLER_PORT 11
 
 // Define Ports for Sensors
-#define DISTANCE_B1_PORT 13
-#define DISTANCE_B2_PORT 14
-#define DISTANCE_L_PORT 15
-#define DISTANCE_R_PORT 16
+#define DISTANCE_BL_PORT 13
+#define DISTANCE_BR_PORT 14
+#define DISTANCE_TL_PORT 15
+#define DISTANCE_TR_PORT 16
 #define ROLLER_SENSOR_PORT 17
 #define TRACKING_B_PORT 18
 #define TRACKING_F_PORT 19
@@ -27,48 +27,92 @@
 
 // Define Ports for sensors and pistons on the Analog Ports
 #define FLYWHEEL_ANGLE_PORT 1
-#define DISTANCE_LP_PORT 2
-#define DISTANCE_RP_PORT 3
-#define INDEXER_PORT 4
-#define ENDGAME_PORT 5
-
+#define DISTANCE_ATL_PORT 2
+#define DISTANCE_ATR_PORT 3
+#define DISTANCE_ABL_PORT 4
+#define DISTANCE_ABR_PORT 5
+#define INDEXER_PORT 6
+#define ENDGAME_PORT 7
 
 /**
- * Define physical Dimensions of Robot
- * All measurements are in millimeters
- *
- * Measurements are given in x and y coordinates
- * Coordinates can be used in reference to each other to calculate the angle the robot is at
+ * Enumerated value to select walls
+ * Possible values are "left", "right", "top", "bottom", "none"
  */
+enum Wall {left, bottom, right, top, none};
 
-// Horizontal Distance from Top Left Sensor to Measuring Point of Robot
-int const tl_sensor_x = 0;
-// Vertical Distance from Top Left Sensor to Measuring Point of Robot
-int const tl_sensor_y = 0;
-// Horizontal Distance from Top Right Sensor to Measuring Point of Robot
-int const tr_sensor_x = 0;
-// Vertical Distance from Top Right Sensor to Measuring Point of Robot
-int const tr_sensor_y = 0;
-// Horizontal Distance from Bottom Left Sensor to Measuring Point of Robot
-int const bl_sensor_x = 0;
-// Vertical Distance from Bottom Left Sensor to Measuring Point of Robot
-int const bl_sensor_y = 0;
-// Horizontal Distance from Bottom Right Sensor to Measuring Point of Robot
-int const br_sensor_x = 0;
-// Vertical Distance from Bottom Right Sensor to Measuring Point of Robot
-int const br_sensor_y = 0;
-// Vertical Distance between Front Tracking Wheel and Measuring Point of Robot
-int const ft_sensor_y = 0;
-// Vertical Distance between Back Tracking Wheel and Measuring Point of Robot
-int const bt_sensor_y = 0;
-// Measurement of tracking Wheel Circumference
-int const track_wheel_circumference = 220;
+/**
+ * Class for the Calibration Sensor
+ * 
+ * Combines the following information
+ *  - Distance Sensor
+ *  - Potentiometer
+ *  - Location of Sensor Relative to Robot
+ *  - Direction Sensor is facing
+ * 
+ * Uses the information to calibrate the initial location of the robot
+ */
+struct CalibrationSensor {
+	// Sensors are private; methods are provided for getting their values
+	private:
+		// Potentiometer attached to sensor, used to get the angle of the sensors
+		pros::ADIPotentiometer* potentiometer;
+		// Distance sensor, used to get the distance of the sensor to the wall
+		pros::Distance* distance;
+	
+	// Positional values are public so they can be accessed
+	public:
+		// Direction the sensor is facing
+		Wall direction;
+		// x position of sensor relative to the measuring point of the robot
+		int x_offset;
+		// y position of sensor relative to the measuring point of the robot
+		int y_offset;
 
+		/**
+		 * Constructor method of the Calibration Sensor
+		 * 
+		 * @param wall the direction the sensor is pointed at
+		 * @param x x position of sensor relative to the measuring point of the robot
+		 * @param y y position of sensor relative to the measuring point of the robot
+		 * @param potentiometer_port the port that the potentiometer is plugged into
+		 * @param distance_port the port that the distance sensor is plugged into
+		 */
+		CalibrationSensor(Wall wall, int x, int y, int potentiometer_port, int distance_port) {
+			// Assigns parameters to struct's variables
+			pros::ADIPotentiometer p(potentiometer_port);
+			potentiometer = &p;
+			pros::Distance d(distance_port);
+			distance = &d;
+			x_offset = x;
+			y_offset = y;
+			direction = wall;
+		}
+
+		/**
+		 * Gets the distance of the sensor to the wall
+		 * 
+		 * @return the distance from the sensor to the wall
+		 */
+		int get_distance () {
+			return (*distance).get();
+		}
+
+		/**
+		 * Gets the angle of the sensor relative to the robot
+		 * 
+		 * @return the angle of the sensor relative to the robot
+		 */
+		double get_angle () {
+			return (*potentiometer).get_angle();
+		}
+};
 
 // Varaiables to keep track of the Location of the Robot
-int x_loc, y_loc = br_sensor_y;
+int original_x_loc, original_y_loc;
 // Variable to keep track of the Orientation of the Robot
-float theta;
+float original_theta;
+// Measurement of tracking Wheel Circumference
+float const track_wheel_circumference = 2.1944;
 
 // Define Controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -86,26 +130,48 @@ pros::Motor flywheel_a1(FLYWHEEL_A1_PORT);
 pros::Motor flywheel_a2(FLYWHEEL_A2_PORT);
 // Define Pistons
 // Define Sensors
-pros::Distance distance_b1(DISTANCE_B1_PORT);
-pros::Distance distance_b2(DISTANCE_B2_PORT);
-pros::Distance distance_l(DISTANCE_L_PORT);
-pros::Distance distance_r(DISTANCE_R_PORT);
 pros::Optical roller_sensor(ROLLER_SENSOR_PORT);
 pros::Rotation tracking_b(TRACKING_B_PORT);
 pros::Rotation tracking_f(TRACKING_F_PORT);
 pros::Rotation tracking_p(TRACKING_P_PORT);
+CalibrationSensor sensor_tl(top, 0, 0, DISTANCE_ATL_PORT, DISTANCE_TL_PORT);
+CalibrationSensor sensor_tr(none, 0, 0, DISTANCE_ATR_PORT, DISTANCE_TR_PORT);
+CalibrationSensor sensor_bl(left, 0, 0, DISTANCE_ABL_PORT, DISTANCE_BL_PORT);
+CalibrationSensor sensor_br(left, 0, 0, DISTANCE_ABR_PORT, DISTANCE_BR_PORT);
 pros::ADIPotentiometer flywheel_angle(FLYWHEEL_ANGLE_PORT);
-pros::ADIPotentiometer distance_lp(DISTANCE_LP_PORT);
-pros::ADIPotentiometer distance_rp(DISTANCE_RP_PORT);
-
 
 /**
  * Calibrates the Location of the robot
  */
 void calibrate_location() {
-	// Find the 2 sensors that point at the same wall
+	// Find the 2 sensors that point at the same wall 
+	CalibrationSensor* sensor_b;
+	CalibrationSensor* sensor_d;
+	CalibrationSensor* sensor_f;
+	int* closeOffset = &original_x_loc;
+	int* farOffset = &original_y_loc;
 	// Calculate offset from wall and theta
-	// Find how that wall correlates to the coordinate plane
+	double hb = (*sensor_d).y_offset - (*sensor_b).y_offset;
+	double hd = (*sensor_d).x_offset - (*sensor_b).x_offset;
+	int hg = (*sensor_b).x_offset;
+	int de = (*sensor_d).get_distance();
+	int bc = (*sensor_b).get_distance();
+	double hde = (*sensor_d).get_angle();
+	double cbd = (*sensor_b).get_angle();
+	double hdb = atan(hb/hd);
+	int bd = sqrt(hb*hb+hd*hd);
+	double bde = hde - hdb;
+	int be = sqrt(bd*bd+de*de-bd*de*cos(bde));
+	int ebd = atan(de*sin(bde)/be);
+	int bed = 180 - ebd - bde;
+	int cbe = cbd - ebd;
+	int ce = sqrt(bc*bc+be*be-2*bc*be*cos(cbe));
+	int bec = asin(bc*sin(cbe)/ce);
+	original_theta = 180 - hde - bed - bec;
+	(*closeOffset) = hg*sin(original_theta) + (*sensor_b).y_offset*cos(original_theta) + be*sin(bec);
+	(*farOffset) = (*sensor_f).get_distance()*cos(90+original_theta-(*sensor_f).get_angle())+cos(original_theta)*(*sensor_f).x_offset+sin(original_theta)*(*sensor_f).y_offset;
+
+
 	// Based on the wall that the two sensors are on edit theta accordingly
 	// Walls - Left: 0 Bottom: +90 Right: +180 Top: +270
 	// Robot - Back: 0 Left: +90 Front: +180 Right: +270
@@ -170,6 +236,10 @@ void autonomous() {}
 void opcontrol() {
 	// Variables to store the target speed for each side of the chassis
 	int leftSpeed = 0, rightSpeed = 0;
+	// Variables to store the position of the robot
+	int x_loc, y_loc;
+	// Variable to store teh direction the robot is facing
+	float theta;
 	// Main Control Loop
 	while (true) {
 		
@@ -207,6 +277,11 @@ void opcontrol() {
 		chassis_r1 = rightSpeed;
 		chassis_r2 = rightSpeed;
 		chassis_r3 = rightSpeed;
+
+		
+		x_loc = original_x_loc + tracking_p.get_angle()*cos(theta)*track_wheel_circumference;
+		y_loc = original_y_loc + tracking_p.get_angle()*cos(theta)*track_wheel_circumference;
+		theta = original_theta + (tracking_f.get_angle() - tracking_b.get_angle())/2.0*track_wheel_circumference;
 
 		/** 
 		 * Delay so other processes can run
