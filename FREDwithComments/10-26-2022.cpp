@@ -116,6 +116,7 @@ void competition_initialize() {}
  */
 
 void drive(int power, float distance){
+	// Drive function used for autonomous control
 	left_mtr1.move_absolute(distance, power);
 	left_mtr2.move_absolute(distance, power);
 	left_mtr3.move_absolute(distance, power);
@@ -130,7 +131,7 @@ void drivePID(std::string dir, float distance){
 
 void turn(turnType dir, float deg) {
 	
-
+	// PID implemented to turn a certain degree
   float error = deg;
   float prevError = deg;
   float totalError = 0;
@@ -199,21 +200,25 @@ int driveTask(){
 		int left = controller.get_analog(ANALOG_LEFT_Y);
 		int right = controller.get_analog(ANALOG_RIGHT_Y);
 		if(abs(right) > 5){
+			//When analog right stick is moved, control right side of chassis 
 			right = right -5 * (127/122);
 			right_mtr1.move(right);
 			right_mtr2.move(right);
 			right_mtr3.move(right);
 		} else {
+			//if the right analog stick is centered, don't move the right side of the chassis
 			right_mtr1.brake();
 			right_mtr2.brake();
 			right_mtr3.brake();
 		}
 		if(abs(left) > 5){
+			//When left analog stick is moved, control left side of chassis 
 			left = left - 5 * (127/122);
 			left_mtr1.move(left);
 			left_mtr2.move(left);
 			left_mtr3.move(left);
 		} else {
+			//if the left analog stick is centered, don't move left side of chassis
 			left_mtr1.brake();
 			left_mtr2.brake();
 			left_mtr3.brake();
@@ -258,6 +263,7 @@ void opcontrol() {
 			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
 		}
 		else if (SlipGearSensor.get_value()) {
+		//stops the catapult if sensor finds value
 			cataFlag = 0;
 			intakeLock = 0;
 			left_catapult.brake();
@@ -268,6 +274,7 @@ void opcontrol() {
 		pros::lcd::set_text(3, std::to_string(SlipGearSensor.get_value()));
 
 		if(controller.get_digital(DIGITAL_R1) && cataFlag == 0){
+		// if the "B" button is pressed then catapult motors "left and right catapult" is reset
 			cataFlag = 0;
 			intakeLock = 1;
 			left_catapult.move_velocity(600);
@@ -298,12 +305,15 @@ void opcontrol() {
 
 		//Intake
 		if(controller.get_digital(DIGITAL_L1) && intakeLock == 0){
+			// Intake in
 			Intake_1.move(-127);
 			Intake_2.move(-127);
 		}else if (controller.get_digital(DIGITAL_L2) && intakeLock == 0){
+			// Intake out
 			Intake_1.move(127);
 			Intake_2.move(127);
 		} else {
+			// Stops intake
 			Intake_1.brake();
 			Intake_2.brake();
 		}
