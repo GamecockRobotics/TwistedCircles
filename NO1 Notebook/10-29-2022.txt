@@ -1,0 +1,45 @@
+Changelog
+
+Added a port for a gyro sensor, but a gyro was never added to the robot, so this was never used.
+
+Removed the settings for different speeds of the flywheel as these were not used in the code.
+
+Added a turn direction enum, which is used in the autonomous turn function.
+
+Created a function to tare the motor positions to make sure the turn function worked.
+
+Created a turn function that calculates the distance needed to turn a certain number of degrees and 
+then turns the robot that amount.
+     (360 degree robot turn)         x (6.5pi inch wheel turn) x (36 tooth gear) x (600 rpm motor) = 3.2
+(11pi inch robot turn circumference)   (360 degree wheel turn)   (60 tooth gear)   (200 rpm motor)
+
+
+This value was tuned experimentally to get 3.8. We attribute this error to the non equidistance between the omniwheels 
+and traction wheels, as well as slight slipping when the traction wheels were not in full contact with the ground.
+
+Removed the function that would allow the driver to control the flywheel speed as the flywheel only 
+worked at full speed and this was not used.
+
+Created a simple autonomous that turned left to test the turn function.
+
+Changed the shoot method to no longer use the intake in reverse when launching the disks. Also changed 
+the indexer to full speed or else the indexer would just slide under the disk.
+
+Added a line to the display to show the indexer target speed for use in debugging. 
+Added a line to the display to show the indexer efficiency for use in debugging.
+Explanation:
+When running the indexer, the indexer was not returning to its original position after indexing the disk. 
+The code worked by checking what state the indexer was in and then checking the efficiency of the indexer to 
+determine when to go to the next state. 
+The code read:
+
+if (indexerTarget == 30 && indexer.get_efficiency() < 5) { ... }
+if (indexerTarget == -30 && indexer.get_efficiency() < 5) { ... }
+
+Since we changed the speed of the indexer to 127 from 30, this line of code was no longer functioning as intended.
+These two displays were used to debug and find this error.
+
+The new code now reads:
+
+if (indexerTarget == 127 && indexer.get_efficiency() < 5) { ... }
+else if (indexerTarget == -127 && indexer.get_efficiency() < 5) { ... }

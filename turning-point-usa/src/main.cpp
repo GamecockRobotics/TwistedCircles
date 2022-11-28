@@ -21,8 +21,6 @@
 #define INDEX_PORT 18
 #define GYRO_PORT 19
 
-
-#define FLYWHEEL_EPSILON 20
 enum IntakeDirection { in, stop, out };
 enum TurnType {left, right};
 IntakeDirection intakeState = stop;
@@ -258,11 +256,9 @@ void opcontrol() {
 		//Rollers
 		if (controller.get_digital(DIGITAL_UP)) {
 			roller = 127;
-		}
-		else if (controller.get_digital(DIGITAL_DOWN)) {
+		} else if (controller.get_digital(DIGITAL_DOWN)) {
 			roller = -127;
-		}
-		else {
+		} else {
 			roller = 0;
 		}
 

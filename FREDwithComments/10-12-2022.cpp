@@ -37,6 +37,7 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
  * When this callback is fired, it will toggle line 2 of the LCD text between
  * "I was pressed!" and nothing.
  */
+
 void on_center_button() {
 	static bool pressed = false;
 	pressed = !pressed;
@@ -166,21 +167,25 @@ void opcontrol() {
 		int right = controller.get_analog(ANALOG_RIGHT_Y);
 		if(abs(right) > 5){
             //mention the deadzone with this calculation
+			//When analog right stick is moved, control right side of chassis 
 			right = right -5 * (127/122);
 			right_mtr1.move(right);
 			right_mtr2.move(right);
 			right_mtr3.move(right);
 		} else {
+			//if the right analog stick is centered, don't move the right side of the chassis
 			right_mtr1.brake();
 			right_mtr2.brake();
 			right_mtr3.brake();
 		}
 		if(abs(left) > 5){
+			//When left analog stick is moved, control left side of chassis 
 			left = left - 5 * (127/122);
 			left_mtr1.move(left);
 			left_mtr2.move(left);
 			left_mtr3.move(left);
 		} else {
+			//if the left analog stick is centered, don't move left side of chassis
 			left_mtr1.brake();
 			left_mtr2.brake();
 			left_mtr3.brake();
@@ -201,31 +206,38 @@ void opcontrol() {
 		}*/
 		
 		if(controller.get_digital(DIGITAL_B)){
+			// if the "B" button is pressed then catapult motors "left and right catapult" is reset
 			cataFlag = 0;
 			intakeLock = 1;
 			left_catapult.move_velocity(600);
 			right_catapult.move_velocity(600);
 		} else if(controller.get_digital(DIGITAL_R1)){
+			// if the "R1" button is pressed then the catapult is fired by motors "left and right catapult" 
 			cataFlag = 1;
 			intakeLock = 1;
 			//left_catapult.tare_position();
 			//right_catapult.tare_position();
-			left_catapult.move_relative(2.5, CATAPULT_MAX);
+			
+			// "move_relative" sets the relative target position for the motor to move to
+			left_catapult.move_relative(2.5, CATAPULT_MAX); 
 			right_catapult.move_relative(2.5, CATAPULT_MAX);
 			int value = right_catapult.get_position();
 			std::string s = std::to_string(value);
 			int value2 = left_catapult.get_position();
 			std::string s2 = std::to_string(value2);
+			
 			//pros::lcd::set_text(4, "RIGHTCATA: " + s);
 			//pros::lcd::set_text(6, "LEFTCATA: " + s2);
 			//pros::delay(100);
 			
 		} else if(cataFlag == 0 && !(controller.get_digital(DIGITAL_B))) {
+			// stops catapult is button "B" is pressed
 			intakeLock = 0;
 			left_catapult.brake();
 			right_catapult.brake();
 		}
 
+		
 		double value = left_catapult.get_position();
 		double value3 = left_catapult.get_target_position();
 		std::string thingy = std::to_string(value);
@@ -249,8 +261,10 @@ void opcontrol() {
 
 		//Intake
 		if(controller.get_digital(DIGITAL_L1) && intakeLock == 0){
+			// if button "L1" is pressed reverse intake
 			Intake.move(-127);
 		} else if (controller.get_digital(DIGITAL_L2) && intakeLock == 0){
+			// if button "L2" is being held start intake 	
 			Intake.move(90);
 		} else {
 			Intake.brake();

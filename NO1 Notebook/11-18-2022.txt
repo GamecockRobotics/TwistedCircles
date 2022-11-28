@@ -1,0 +1,26 @@
+Created a Graphical User Interface for the robot.
+The GUI has a field on the left half of the brain to select the robots starting position. 
+There are four possible starting positions, and the selected position will be highlighted magenta.
+The field defaults to the user being set as red and the robot on the left side of the field.
+If the user selects to switch to the starting position on the blue alliance's side of the field,
+The GUI will reorient the field so that the robot will always be on either the bottom or left wall.
+Reorienting the field allows the origin to always be in the bottom left corner of the field and 
+allow the scoring goals to be in the same relative position regardless of alliance.
+
+On the right half of the GUI the robot is displayed with 4 distance sensors. The sensors are selectable.
+Once selected, they will open a menu on the opposite side of the robot to display a list of walls to select.
+The menu is open on the left and right side of the robot so that the selected sensor can be highlighted on the robot. 
+This is so there is a visual indication of what sensor is being changed in case the user forgets.
+There are 5 wall options: "TOP", "BOTTOM", "LEFT", "RIGHT", and "NONE". 
+Only 3 distance sensors are needed to calculate the exact position and angle of the robot. 
+Since 1 of the 4 is not needed, the sensor that is pointed at the furthest wall (thereby being the most inaccurate),
+will be set to "NONE".
+This sensor will often times not be within 2000mm of the wall.
+2000mm being the maximum measurement range of the distance sensor.
+
+To clarify, because the sensors can turn and that can be measured by the potentiometers, 
+the sensors can be changed to face different walls.
+Having 2 sensors facing the same wall will allow us to calculate both the distance from that wall 
+and the angle that the robot is facing. 
+The third distance sensor will detect the distance to one of the other walls (depending on which is closer).
+This will allow us to calculate the (x,y) coordinates of the robot as well as the direction that the robot is facing.

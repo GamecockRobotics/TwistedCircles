@@ -1,0 +1,22 @@
+PID is a control mechanism to get to and stay at a specific sensor value. PID uses three terms: Proportion, Integral, and 
+Derivative to move the motors to their respective positions. The three terms utilize "Error" calculated as the difference 
+between the target position and the actual position as determined by a sensor. 
+
+The Proportion term is calculated as a constant value, kp (the constant of proportion), times the error. Thus, the further
+from the target position the higher the term and thus the motor power. 
+
+The Integral term is calculated by accumulating all of the error and multiplying it by ki (the constant of integration). The 
+integration term is useful for short distances while the power from the proportional term is low. The total error accumulates 
+very quickly so to prevent this term from growing to large, you can either have a maximum total error or only accumulate the 
+smaller values close to the target.
+
+The Derivative term is calculated by multiplying the difference between the current error and the previous error by kd (the 
+constant of derivation). This term is negative. Its purpose is to prevent the control loop from overshooting the target 
+position. Thus if the control loop is approaching the target very slowly, it will slow the loop down more rapidly, but if it 
+is approaching very rapidly then it will slow down the power more quickly. This is useful in preventing the motors from 
+overshooting the desired position.
+
+The constants of proportion, integration, and derivation are determined experimentally. The goal is to maximize both kp and 
+kd such that the motors reach the position as quickly as possible without overshooting the position and oscillating back and 
+forth. The constant of integration is then applied as small as possible to allow the motors to get to the desired position as
+quickly as possible.

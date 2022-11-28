@@ -1,0 +1,26 @@
+Changelog (Austin Coded all of this except the bug fix for the indexer was Nathanael)
+
+Added new motor for indexing flywheel on port 3
+
+Set encoder units for all chassis motors to degrees. Previously had
+only been the two front motors because autonomous had not yet been programmed.
+
+Added a drive forward function
+The theoretical number of degrees to move 1 inch forward is calculated as follows
+1 inch forward *  360 degrees  * 5 tooth gear * 200 rpm cartridge = 19.59 degrees on the motor
+                 3.25pi inches   3 tooth gear   600 rpm cartridge
+This was then tested and adjusted to 19 experimentally
+
+Added a roll function that rolled the rollers for a specified amount of time.
+
+Removed flywheel speed lock based on request from driver, so flywheel will fire regardless of the speed.
+Fixed bug in shoot method where indexer would not stop firing. This bug was discovered because of the removal of the 
+flywheel speed lock. 
+The method was only activated if the indexer was activated or if the launching button was pressed, but because the speed
+of the indexer was set to the target speed at the begining of the method instead of the end, when the launch finished, the 
+indexer would not be set to the stopped state and would activate the shoot method causing it to shoot again. When the flywheel
+speed lock was activated, this was not an issue because the method would stop when the flywheel was not up to speed. This was 
+fixed by setting the motor to the target speed at the end of the method.
+
+Added an autonomous
+Auotnomous moves the robot to the roller and changes the roller to our alliances color
