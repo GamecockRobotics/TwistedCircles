@@ -31,11 +31,13 @@ pros::Motor chassis_R3(CHASSIS_R3_PORT,true);
 pros::Motor intake_1(INTAKE1_PORT);
 pros::Motor intake_2(INTAKE2_PORT,true);
 pros::Motor roller(ROLLER_PORT);
+pros::Motor catapult_L(CATA_L_PORT);
+pros::Motor catapult_R(CATA_R_PORT);
 
 //Declaring sensors and pneumatics
 pros::Imu gyro (GYRO_PORT);
 pros::ADIDigitalOut launcher(LAUNCHER_PORT);
-
+pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 
 enum intakeDirection {stopped, intake, outtake};
@@ -44,6 +46,8 @@ intakeDirection intakeState = stopped;
 enum TurnType {left, right};
 enum DirectionType {forward, backward};
 
+//Declaring variables
+int catapultTarget = 0;
 
 //TODO Make Function that can autoaim power
 
@@ -117,6 +121,49 @@ void competition_initialize() {}
  */
 void autonomous() {}
 
+int driveTask(){
+	while(true){
+		//Base Tank Controls
+		int left = controller.get_analog(ANALOG_LEFT_Y);
+		int right = controller.get_analog(ANALOG_RIGHT_Y);
+		if(abs(right) > 5){
+			right = right -5 * (127/122);
+			chassis_R1.move(right);
+			chassis_R2.move(right);
+			chassis_R3.move(right);
+		} else {
+			chassis_R1.brake();
+			chassis_R2.brake();
+			chassis_R3.brake();
+		}
+		if(abs(left) > 5){
+			left = left - 5 * (127/122);
+			chassis_L1.move(left);
+			chassis_L2.move(left);
+			chassis_L3.move(left);
+		} else {
+			chassis_L1.brake();
+			chassis_L2.brake();
+			chassis_L3.brake();
+		}
+
+	
+	}
+	
+	return 0;
+}
+
+void shoot(){
+	if (catapultTarget == 0) {
+		catapultTarget = 127;
+	} else if (catapultTarget == 127 && catapult_L.get_efficiency() < 5) {
+		catapultTarget = -127;
+	} else if (catapultTarget == -127 && catapult_L.get_efficiency() < 5) {
+		catapultTarget = 0;
+	}
+	catapult_L = catapultTarget;
+	catapult_R = catapultTarget;
+}
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -131,11 +178,15 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	pros::Controller master(pros::E_CONTROLLER_MASTER);
+	bool intakeFlag = true;
 
 
+	
+	pros::Task drive(driveTask);
 	while (true) {
-		catapult = abs(master.get_analog(ANALOG_LEFT_Y)) > 5 ? master.get_analog(ANALOG_LEFT_Y) : 0; 
-		pros::delay(20);
+		if(controller.get_digital(DIGITAL_A) || catapultTarget != 0){
+			shoot();
+			intakeFlag = false;
+		}
 	}
 }
