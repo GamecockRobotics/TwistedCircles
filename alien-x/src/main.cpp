@@ -1,4 +1,6 @@
 #include "main.h"
+#include "gui.h"
+#include "pros/motors.hpp"
 
 
 //defining motors ports
@@ -10,10 +12,44 @@
 #define CHASSIS_R3_PORT 6
 #define CATA_L_PORT 7
 #define CATA_R_PORT 8
+#define INTAKE1_PORT 9
+#define INTAKE2_PORT 10
+#define ROLLER_PORT 11
+#define LAUNCHER_PORT 'g'
 
 //defining sensor ports
 #define GYRO_PORT 11
+#define OPTICAL_PORT 12
 
+//declaring motors
+pros::Motor chassis_L1(CHASSIS_L1_PORT);
+pros::Motor chassis_L2(CHASSIS_L2_PORT, true);
+pros::Motor chassis_L3(CHASSIS_L3_PORT);
+pros::Motor chassis_R1(CHASSIS_R1_PORT, true);
+pros::Motor chassis_R2(CHASSIS_R2_PORT);
+pros::Motor chassis_R3(CHASSIS_R3_PORT,true);
+pros::Motor intake_1(INTAKE1_PORT);
+pros::Motor intake_2(INTAKE2_PORT,true);
+pros::Motor roller(ROLLER_PORT);
+
+//Declaring sensors and pneumatics
+pros::Imu gyro (GYRO_PORT);
+pros::ADIDigitalOut launcher(LAUNCHER_PORT);
+
+
+
+enum intakeDirection {stopped, intake, outtake};
+intakeDirection intakeState = stopped;
+
+enum TurnType {left, right};
+enum DirectionType {forward, backward};
+
+
+//TODO Make Function that can autoaim power
+
+//TODO Odometry 
+
+//TODO figure out how tracking wheels are positioned
 
 /**
  * A callback function for LLEMU's center button.
@@ -42,6 +78,11 @@ void initialize() {
 	pros::lcd::set_text(1, "Hello PROS User!");
 
 	pros::lcd::register_btn1_cb(on_center_button);
+
+	intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
+	intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
+
+	
 }
 
 /**
