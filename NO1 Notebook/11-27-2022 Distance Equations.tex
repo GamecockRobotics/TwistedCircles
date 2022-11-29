@@ -1,0 +1,29 @@
+We know or can determine the following from constant measurements or sensor values:
+$\overline{HB}$,
+$\overline{HD}$,
+$\overline{HG}$,
+$\overline{DE}$,
+$\overline{BC}$,
+$\angle HDE$, and 
+$\angle CBI$
+
+\[\angle HDB = \tan^{-1}\left(\frac{\overline{HB}}{\overline{HD}}\right)\]
+\[\angle CBD = \angle CBI - \angle HDB\]
+\[\overline{BD} = \sqrt{\overline{HB}^2+\overline{HD}^2}\]
+\[\angle BDE = \angle HDE + \angle HDB\]
+\[\overline{BE} = \sqrt{\overline{BD}^2+\overline{DE}^2-2*\overline{BD}*\overline{DE}*\cos(\angle BDE)}\]
+\[\angle EBD = \pm \cos^{-1}\left(\frac{\overline{BE}^2+\overline{BD}^2-\overline{DE}^2}{2*\overline{BE}*\overline{BD}}\right)\]
+\[\angle BED = \pi - \angle EBD - \angle BDE\]
+\[\angle CBE = \angle CBD - \angle EBD\]
+\[\overline{CE} = \sqrt{\overline{BC}^2+\overline{BE}^2-2*\overline{BC}*\overline{BE}*\cos(\angle CBE)}\]
+\[\angle BEC = \cos^{-1}\left(\frac{\overline{BE}^2+\overline{CE}^2-\overline{BC}^2}{2*\overline{BE}*\overline{CE}}\right)\]
+\[\overline{BF} = \overline{BE}*\sin(\angle BEC)\]
+\[\theta = \pi - \angle HDE - \angle BED - \angle BEC\]
+\[\texttt{y location} =  \overline{BF} + (\overline{JG} + \overline{HB})*\cos(\theta) - \overline{HG}*\sin(\theta)\]
+
+We know the values of $\angle KLM$, $\overline{LM}$ from the sensor values and $\overline{LK}$ and $\overline{KJ}$ from measurements of the robot
+
+\[\angle NLK = \frac{\pi}{2} + \theta\]
+\[\angle MLN = \angle KLM - \angle NLK\]
+\[\overline{LN} = \overline{LM}*\cos(\angle MLN)\]
+\[\texttt{x offset} = \overline{LN} - \overline{LK}*\sin(\theta) - \overline{KJ}*\cos(\theta)\]

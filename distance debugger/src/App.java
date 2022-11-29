@@ -20,7 +20,7 @@ public class App extends Window {
     }
 
     public void start() {
-        robot = new Rectangle(screen, 600, 600, 100, 100);
+        robot = new Rectangle(screen, 600, 190, 100, 100);
         sense1 = new Line(screen, robot.center().x() + x[0], robot.center().y() + y[0], bx[0], by[0]);
         sense1.color(Color.RED);
         sense2 = new Line(screen, robot.center().x() + x[1], robot.center().y() + y[1], bx[1], by[1]);
@@ -86,30 +86,16 @@ public class App extends Window {
         
 
 
-            text = "Robot: x=" + robot.center().x() + ", y=" + (800-robot.center().y()) + 
+            text = "Robot x:" + robot.center().x() + ", y: " + (800-robot.center().y()) + 
             "\nTheta: " + robot.rotation() +
-            "\nSensor 1: " + (Math.atan((sense1.pos1().y() - sense1.pos2().y())/(sense1.pos1().x() - sense1.pos2().x()))*180/Math.PI - robot.rotation()) +
-            "\nSensor 2: " + (- Math.atan((sense2.pos1().x() - sense2.pos2().x())/(sense2.pos1().y() - sense2.pos2().y()))*180/Math.PI - robot.rotation() + 90) +
-            "\nSensor 3: " + (Math.atan((sense3.pos1().x() - sense3.pos2().x())/(sense3.pos1().y() - sense3.pos2().y()))*180/Math.PI + robot.rotation() + 90) +
-            "\nCalc x=" + (int)(farOffset+0.5) + "\nCalc y=" + (int)(closeOffset+0.5) + "\nc theta: " + ((int)(original_theta*18000000/Math.PI))/100000.0 +
-            "\nclose: " + (hg*Math.sin(original_theta)) + "   " + (y[1]*Math.cos(original_theta)) + "   " + (be*Math.sin(bec)) +
-            "\nfar: " + (distancef*Math.cos(anglef-original_theta-Math.PI/2))  + "    " + (- Math.cos(original_theta)*x[0]) + "    " + (- Math.sin(original_theta)*y[0]) +
-            "\nde= " + de +
-            "\nbc= " + bc + 
-            "\nbe= " + be +
-            "\nce= " + ce +
-            "\nbd= " + bd +
-            "\ncbe= " + (cbe*180/Math.PI) +
-            "\ncbd= " + (cbd*180/Math.PI) +
-            "\nebd= " + (ebd*180/Math.PI) +
-            "\nbde= " + (bde*180/Math.PI) +
-            "\nhde= " + (hde*180/Math.PI) + 
-            "\nbed= " + (bed*180/Math.PI) +
-            "\nbec= " + (bec*180/Math.PI) + 
-            "\nbde= " + (bde*180/Math.PI) +
-            "\nangle f: " + (anglef*180/Math.PI) +
-            "\ndistancef: " + distancef +
-            "\ntrue y: " + (800 - robot.center().y());
+            "\nCalc x: " + (int)(farOffset+0.5) + ", y: " + (int)(closeOffset+0.5) + 
+            "\nCalculated Theta: " + ((int)(original_theta*180/Math.PI*100000))/100000.0 + 
+            "\nSensor 1 Angle: " + ((int)((Math.atan((sense1.pos1().y() - sense1.pos2().y())/(sense1.pos1().x() - sense1.pos2().x()))*180/Math.PI - robot.rotation())*100000))/100000.0 +
+            "\nSensor 1 Distance: " + ((int)(distancef*100000))/100000.0 +
+            "\nSensor 2 Angle: " + ((int)((- Math.atan((sense2.pos1().x() - sense2.pos2().x())/(sense2.pos1().y() - sense2.pos2().y()))*180/Math.PI - robot.rotation() + 90)*100000))/100000.0 +
+            "\nSensor 2 Distance: " + ((int)(bc*100000))/100000.0 + 
+            "\nSensor 3 Angle: " + ((int)((Math.atan((sense3.pos1().x() - sense3.pos2().x())/(sense3.pos1().y() - sense3.pos2().y()))*180/Math.PI + robot.rotation() + 90)*100000))/100000.0 +
+            "\nSensor 3 Distance: " + ((int)(de*100000))/100000.0;
             sense1.pos1(new Location(robot.center().x() + x[0]*Math.cos(robot.rotation()*Math.PI/180) - y[0]*Math.sin(robot.rotation()*Math.PI/180), robot.center().y() + y[0]*Math.cos(robot.rotation()*Math.PI/180) + x[0]*Math.sin(robot.rotation()*Math.PI/180)));
             sense2.pos1(new Location(robot.center().x() + x[1]*Math.cos(robot.rotation()*Math.PI/180) - y[1]*Math.sin(robot.rotation()*Math.PI/180), robot.center().y() + y[1]*Math.cos(robot.rotation()*Math.PI/180) + x[1]*Math.sin(robot.rotation()*Math.PI/180)));
             sense3.pos1(new Location(robot.center().x() + x[2]*Math.cos(robot.rotation()*Math.PI/180) - y[2]*Math.sin(robot.rotation()*Math.PI/180), robot.center().y() + y[2]*Math.cos(robot.rotation()*Math.PI/180) + x[2]*Math.sin(robot.rotation()*Math.PI/180)));
