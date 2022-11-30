@@ -221,11 +221,13 @@ void runRoller(color color){
 	vision.set_led_pwm(100);
 	pros::lcd::set_text(4, std::to_string(vision.get_hue()));
 	if (color == red) {
+		// Rolls roller until it sees red
 		while (!(vision.get_hue() > 300 || vision.get_hue() < 20)) {
 			Intake_1.move(70);
 			Intake_2.move(70);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
 		}
+		// Rolls roller until it sees blue, this means that red is in place
 		while (vision.get_hue() > 300 || vision.get_hue() < 20) {
 			Intake_1.move(70);
 			Intake_2.move(70);
@@ -233,11 +235,13 @@ void runRoller(color color){
 		}
 	}
 	if (color == blue) {
+		// Rolls roller until it sees blue
 		while (!(vision.get_hue() < 300 && vision.get_hue() > 100)) {
 			Intake_1.move(70);
 			Intake_2.move(70);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
 		}
+		// Rolls roller until it sees red, this means that blue is in place
 		while (vision.get_hue() < 300 && vision.get_hue() > 100) {
 			Intake_1.move(70);
 			Intake_2.move(70);
