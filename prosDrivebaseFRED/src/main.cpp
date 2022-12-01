@@ -220,36 +220,75 @@ void turn(turnType dir, int32_t deg) {
 void runRoller(color color){
 	vision.set_led_pwm(100);
 	pros::lcd::set_text(4, std::to_string(vision.get_hue()));
-	if (color == red) {
+	left_mtr1 = -20;
+	left_mtr2 = -20;
+	left_mtr3 = -20;
+	right_mtr1 = -20;
+	right_mtr2 = -20;
+	right_mtr3 = -20;
+
+	if (color == blue) {
 		// Rolls roller until it sees red
 		while (!(vision.get_hue() > 300 || vision.get_hue() < 20)) {
-			Intake_1.move(70);
-			Intake_2.move(70);
+			Intake_1.move(127);
+			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
 		}
 		// Rolls roller until it sees blue, this means that red is in place
 		while (vision.get_hue() > 300 || vision.get_hue() < 20) {
-			Intake_1.move(70);
-			Intake_2.move(70);
+			Intake_1.move(127);
+			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
 		}
 	}
-	if (color == blue) {
+	if (color == red) {
 		// Rolls roller until it sees blue
 		while (!(vision.get_hue() < 300 && vision.get_hue() > 100)) {
-			Intake_1.move(70);
-			Intake_2.move(70);
+			Intake_1.move(127);
+			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
 		}
 		// Rolls roller until it sees red, this means that blue is in place
 		while (vision.get_hue() < 300 && vision.get_hue() > 100) {
-			Intake_1.move(70);
-			Intake_2.move(70);
+			Intake_1.move(127);
+			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
 		}
 	}
 	Intake_1.brake();
 	Intake_2.brake();
+	left_mtr1 = 0;
+	left_mtr2 = 0;
+	left_mtr3 = 0;
+	right_mtr1 = 0;
+	right_mtr2 = 0;
+	right_mtr3 = 0;
+
+	vision.set_led_pwm(0);
 }
 
 void runIntake(direction dir, float dis){
@@ -293,10 +332,11 @@ void shoot(){
 
 void autonomous() {
 
+	pros::lcd::set_text(2, "auton started");
 	runRoller(red);
-	pros::lcd::set_text(3, "Blue");
+	pros::lcd::set_text(3, "red");
 	pros::delay(3000);
-	pros::lcd::set_text(3, "Red");
+	pros::lcd::set_text(3, "blue");
 	runRoller(blue);
 
 	/* 	
