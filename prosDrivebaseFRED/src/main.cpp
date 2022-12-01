@@ -233,6 +233,7 @@ void runRoller(color color){
 			Intake_1.move(127);
 			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
 			left_mtr1 = -20;
 			left_mtr2 = -20;
 			left_mtr3 = -20;
@@ -245,6 +246,7 @@ void runRoller(color color){
 			Intake_1.move(127);
 			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
 			left_mtr1 = -20;
 			left_mtr2 = -20;
 			left_mtr3 = -20;
@@ -259,6 +261,7 @@ void runRoller(color color){
 			Intake_1.move(127);
 			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
 			left_mtr1 = -20;
 			left_mtr2 = -20;
 			left_mtr3 = -20;
@@ -271,6 +274,7 @@ void runRoller(color color){
 			Intake_1.move(127);
 			Intake_2.move(127);
 			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
 			left_mtr1 = -20;
 			left_mtr2 = -20;
 			left_mtr3 = -20;
@@ -279,6 +283,7 @@ void runRoller(color color){
 			right_mtr3 = -20;
 		}
 	}
+	// Stops the intake, robot movement, and turns off flashlight
 	Intake_1.brake();
 	Intake_2.brake();
 	left_mtr1 = 0;
@@ -287,7 +292,6 @@ void runRoller(color color){
 	right_mtr1 = 0;
 	right_mtr2 = 0;
 	right_mtr3 = 0;
-
 	vision.set_led_pwm(0);
 }
 
