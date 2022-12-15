@@ -2,6 +2,8 @@
 #include "pros/motors.h"
 #include "pros/rtos.hpp"
 
+
+
 // Define Ports for Motors
 #define CHASSIS_L1_PORT 1
 #define CHASSIS_L2_PORT 2
@@ -33,6 +35,21 @@
 #define DISTANCE_ABR_PORT 5
 #define INDEXER_PORT 6
 #define ENDGAME_PORT 7
+
+
+// The value of pi
+static constexpr double pi = 3.1415926535897932;
+// The value of pi divided by 2
+static constexpr double pi2 = 1.5707963267948966;
+// Converts inches to millimeters
+static constexpr double inchToMM = 25.4;
+// Converts millimeters to inches
+static constexpr double mmToInch = 0.0393700787;
+// Converts degrees to radians
+static constexpr double degreeToRadian = 0.01745329252;
+// Converts radians to degrees
+static constexpr double radianToDegree = 57.2957795;
+
 
 /**
  * Enumerated value to select walls
@@ -157,20 +174,26 @@ void calibrate_location() {
 	int de = (*sensor_d).get_distance();
 	int bc = (*sensor_b).get_distance();
 	double hde = (*sensor_d).get_angle();
-	double cbd = (*sensor_b).get_angle();
-	double hdb = atan(hb/hd);
-	int bd = sqrt(hb*hb+hd*hd);
-	double bde = hde - hdb;
-	int be = sqrt(bd*bd+de*de-bd*de*cos(bde));
-	int ebd = atan(de*sin(bde)/be);
-	int bed = 180 - ebd - bde;
-	int cbe = cbd - ebd;
-	int ce = sqrt(bc*bc+be*be-2*bc*be*cos(cbe));
-	int bec = asin(bc*sin(cbe)/ce);
-	original_theta = 180 - hde - bed - bec;
-	(*closeOffset) = hg*sin(original_theta) + (*sensor_b).y_offset*cos(original_theta) + be*sin(bec);
-	(*farOffset) = (*sensor_f).get_distance()*cos(90+original_theta-(*sensor_f).get_angle())+cos(original_theta)*(*sensor_f).x_offset+sin(original_theta)*(*sensor_f).y_offset;
+	double cbi = (*sensor_b).get_angle();
+    double hdb = atan(hb/hd);
+	double cbd = cbi - hdb;
+	double bd = sqrt(hb*hb+hd*hd);
+	double bde = hde + hdb; 
+	double be = sqrt(bd*bd+de*de-2*bd*de*cos(bde));
+	double ebd = acos((be*be+bd*bd-de*de)/(2*be*bd))*(bde>pi?-1:1);
+	double bed = pi - ebd - bde;
+	double cbe = cbd - ebd;
+	double ce = sqrt(bc*bc+be*be-2*bc*be*cos(cbe));
+	double bec = acos((be*be+ce*ce-bc*bc)/(2*be*ce));
 
+
+
+	double original_theta = pi - hde - bed - bec;
+	
+	double anglef =  - original_theta + pi2;
+	double distancef = (*sensor_f).get_distance();
+	(*closeOffset) = -hg*sin(original_theta) + (*sensor_b).y_offset*cos(original_theta) + be*sin(bec);
+	(*farOffset) = distancef*cos(anglef-original_theta-pi2) - cos(original_theta)*(*sensor_f).x_offset - sin(original_theta)*(*sensor_f).y_offset;
 
 	// Based on the wall that the two sensors are on edit theta accordingly
 	// Walls - Left: 0 Bottom: +90 Right: +180 Top: +270

@@ -1,6 +1,7 @@
 #include "main.h"
 #include "pros/adi.hpp"
 #include "pros/llemu.hpp"
+#include "pros/optical.hpp"
 #include "pros/rotation.hpp"
 #include "pros/rtos.hpp"
 #include <iostream>
@@ -20,11 +21,13 @@
 #define CATAPULT_MAX 600
 #define LAUNCHER_PORT 'g'
 #define GYRO_PORT 13
+#define VISION_PORT 20
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
 enum turnType{left, right};
 enum direction{forward, backward};
+enum color{red, blue};
 
 
 
@@ -41,6 +44,7 @@ enum direction{forward, backward};
 	pros::Motor Intake_2(INTAKE_PORT_2, true);
 	pros::Imu gyro (GYRO_PORT);
 	pros::ADIDigitalOut launcher(LAUNCHER_PORT);
+	pros::Optical vision(VISION_PORT);
 	
 	//Bumpers and switches example
 	pros::ADIDigitalIn SlipGearSensor (SLIPGEAR_BUMPER);
@@ -213,12 +217,82 @@ void turn(turnType dir, int32_t deg) {
   left_mtr3.brake();
 }
 
-void runRoller(){
-	Intake_1.move(70);
-	Intake_2.move(70);
-	pros::delay(1000);
-	Intake_1.move(0);
-	Intake_2.move(0);
+void runRoller(color color){
+	vision.set_led_pwm(100);
+	pros::lcd::set_text(4, std::to_string(vision.get_hue()));
+	left_mtr1 = -20;
+	left_mtr2 = -20;
+	left_mtr3 = -20;
+	right_mtr1 = -20;
+	right_mtr2 = -20;
+	right_mtr3 = -20;
+
+	if (color == blue) {
+		// Rolls roller until it sees red
+		while (!(vision.get_hue() > 300 || vision.get_hue() < 20)) {
+			Intake_1.move(127);
+			Intake_2.move(127);
+			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
+		}
+		// Rolls roller until it sees blue, this means that red is in place
+		while (vision.get_hue() > 300 || vision.get_hue() < 20) {
+			Intake_1.move(127);
+			Intake_2.move(127);
+			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
+		}
+	}
+	if (color == red) {
+		// Rolls roller until it sees blue
+		while (!(vision.get_hue() < 300 && vision.get_hue() > 100)) {
+			Intake_1.move(127);
+			Intake_2.move(127);
+			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
+		}
+		// Rolls roller until it sees red, this means that blue is in place
+		while (vision.get_hue() < 300 && vision.get_hue() > 100) {
+			Intake_1.move(127);
+			Intake_2.move(127);
+			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
+			// pushes the robot into the roller
+			left_mtr1 = -20;
+			left_mtr2 = -20;
+			left_mtr3 = -20;
+			right_mtr1 = -20;
+			right_mtr2 = -20;
+			right_mtr3 = -20;
+		}
+	}
+	// Stops the intake, robot movement, and turns off flashlight
+	Intake_1.brake();
+	Intake_2.brake();
+	left_mtr1 = 0;
+	left_mtr2 = 0;
+	left_mtr3 = 0;
+	right_mtr1 = 0;
+	right_mtr2 = 0;
+	right_mtr3 = 0;
+	vision.set_led_pwm(0);
 }
 
 void runIntake(direction dir, float dis){
@@ -261,6 +335,15 @@ void shoot(){
 }
 
 void autonomous() {
+
+	pros::lcd::set_text(2, "auton started");
+	runRoller(red);
+	pros::lcd::set_text(3, "red");
+	pros::delay(3000);
+	pros::lcd::set_text(3, "blue");
+	runRoller(blue);
+
+	/* 	
 	drive(-120, -50);
 	runRoller();
 	pros::delay(200);
@@ -271,6 +354,7 @@ void autonomous() {
 	pros::delay(200);
 	turn(left,270);
 	pros::delay(1000);
+	 */
 	//pros::delay(20000);
 	/*
 	drive(127,9000);
