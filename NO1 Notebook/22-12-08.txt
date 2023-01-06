@@ -1,0 +1,30 @@
+Modified the Java debugging tool to closer replicate reality. Made it so that you could control the
+angle and distance of the sensors on the robot. The output of all the calculations are shown on the
+side. 
+The previous version allowed the user to control where on the field the robots was, the direction
+that it was facing and the location that the sensors were pointing at on the wall. This new version
+only allows the user to control the values of the sensors (distance and angle). This was useful in
+debugging the c++ version of the algorithm because the algorithm could quickly be simulated without
+the need for moving the physical robot. 
+
+The C++ algotithm for the robot was similar to the java algorithm with a few exceptions such as
+zeroing out potentiometers and reversing the angle reading from the potentiometers. 
+
+Using the algorithm has two issues. 
+
+First, since the potentiometers only have 330 degrees, the way
+that one of the potentiometers was positioned went outside of the 330 degrees and messed up the
+algorithm. This could easily be fixed by changing the orientation of the potentiometer on the 
+robot. In addition to this, the potentiometers need to be recalibrated to a zeroed out position by
+hand and this needs to be done on each robot for each potentiometer. This only needs to happen
+once, but Nathanael is unconvinced that this technique is not accurate in zeroing the sensor.
+
+Secondly, the distance sensors struggle to accurately calculate the distance from the clear walls.
+The sensors were tested against solid walls in which the robot accurately calculated its position
+and angle. Once placed on th field the distance sensors seemed to be giving bad readings and by
+changing the distance of objects on the other side of the clear wall, the distance sensors would
+respectively change their readings. A solution was attempted by angling the distance sensors to
+face the black metal bracing of the wall, but this technique was difficult to accomplish and was
+not possible in all positions and angles. 
+
+Nathanael determined that the algorithm was likely not worth the effort to implement. 

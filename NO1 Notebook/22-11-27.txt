@@ -1,0 +1,14 @@
+Created a Java debugging tool to test my algorithm for calculating the location of the robot.
+
+The tool places a rectangle (representing the robot) on the window. Usinf the arrow keys or 
+WASD, the user can move the robot on the field. Using 'Q' and 'E' the user can change the 
+angle of the robot.
+Pressing the Spacebar toggles control from the robot to the sensors. Using the arrow keys or
+WASD changes the location of the sensor relative to the robot. Using the 'Q' and 'E' keys
+changes the angle that the sensor points at on the wall.
+
+The robot takes the position that the user moves the robot to, to calculate the true x and y 
+coordinates as well as the angle that the robot is facing.
+
+Refer to the diagram [11-27-2022 Distance Equations.png] for the equations used to calculate the
+angle and position of the robot.

@@ -1,0 +1,2 @@
+Began debugging with dumb algorithm that just takes into account change in x and y coordinates
+without taking curvature of path into account. Algorithm is accurate to 4mm for a 360 degree turn.

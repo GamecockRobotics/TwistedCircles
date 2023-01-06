@@ -1,0 +1,18 @@
+Designed an Odometry Tracking algorithm to work with 2 tracking wheels and an inertial sensor.
+
+Tested code but Inertial sensor was returning "inf" the programming equivalent of infinity, which
+was messing up the program. Did not get to test the algorithm for tracking because of the issue
+with the inertial sensor. 
+
+Also added an indexing code for testing purposes.
+
+
+Odometry Explanation
+1) The algorithm gets the change in angle from the gyro sensor. 
+
+2) The algorithm uses the angle changed in addition to the distance traveled by one of the tracking
+wheels to calculate the origin of a polar coordinate system.
+
+This is done by dividing the length of the arc traveled and dividing by the change 
+
+3) 

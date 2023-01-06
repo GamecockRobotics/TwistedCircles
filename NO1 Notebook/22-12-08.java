@@ -109,8 +109,8 @@ public class App extends Window {
             "\nSensor 3 Distance: " + ((int)(de*100000))/100000.0 +
             
             "\n\nreal 1: " + sense1.pos1().distance(sense1.pos2())*5 +
-            "\n\nreal 2: " + sense2.pos1().distance(sense2.pos2())*5 +
-            "\n\nreal 3: " + sense3.pos1().distance(sense3.pos2())*5 +
+            "\nreal 2: " + sense2.pos1().distance(sense2.pos2())*5 +
+            "\nreal 3: " + sense3.pos1().distance(sense3.pos2())*5 +
 
             "\n\nhb  : " + hb  + 
             "\nhd  : " + hd  + 

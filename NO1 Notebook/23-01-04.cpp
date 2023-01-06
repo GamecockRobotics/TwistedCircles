@@ -60,7 +60,7 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 3467, y_loc = 1524;
+double x_loc = 1524, y_loc = 3467;
 // Variable to keep track of the Orientation of the Robot
 double theta = 0;
 
@@ -127,8 +127,8 @@ int odometry() {
 		// delta_theta = (track_theta - prev_theta)*centidegree_to_radian;
 
 		// Converts the local movements to the global position
-		y_loc += cos(theta*degree_to_radian)*mm_side + sin(theta*degree_to_radian)*mm_forward;
-		x_loc += cos(theta*degree_to_radian)*mm_forward - sin(theta*degree_to_radian)*mm_side;
+		x_loc += cos(theta*degree_to_radian)*mm_side - sin(theta*degree_to_radian)*mm_forward;
+		y_loc += sin(theta*degree_to_radian)*mm_side + cos(theta*degree_to_radian)*mm_forward;
 		theta = gyro.get_rotation();
 
 		// Debugging Values for Ododmetey

@@ -10,9 +10,8 @@ Created a function to tare the motor positions to make sure the turn function wo
 
 Created a turn function that calculates the distance needed to turn a certain number of degrees and 
 then turns the robot that amount.
-     (360 degree robot turn)         x (6.5pi inch wheel turn) x (36 tooth gear) x (600 rpm motor) = 3.2
-(11pi inch robot turn circumference)   (360 degree wheel turn)   (60 tooth gear)   (200 rpm motor)
-
+1 degree robot turn * 2 degree side turn  * 11pi inches turn *  360 degrees  * 5 tooth gear * 200 rpm cartridge = 3.76
+                      1 degree robot turn    360 degree turn   3.25pi inches   3 tooth gear   600 rpm cartridge
 
 This value was tuned experimentally to get 3.8. We attribute this error to the non equidistance between the omniwheels 
 and traction wheels, as well as slight slipping when the traction wheels were not in full contact with the ground.
