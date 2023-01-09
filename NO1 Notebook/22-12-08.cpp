@@ -145,8 +145,10 @@ pros::ADIPotentiometer flywheel_angle(FLYWHEEL_ANGLE_PORT);
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+
 	pros::lcd::initialize();
 	
+	// Wait to allow the sensors to initialize
 	pros::delay(1000);
 
 	
@@ -221,59 +223,74 @@ void opcontrol() {
 	// Flag to set the position of the indexing piston
 	bool indexing_flag = false;
 	// Main Control Loop
-int count = 0;
 	while (true) {
-	CalibrationSensor sensor_tl(top, 216, 216, distance_tl.get(), potentiometer_tl.get_angle()+90);
-	CalibrationSensor sensor_tr(none, -216, 216, distance_tr.get(), potentiometer_tr.get_angle()-115.43);
-	CalibrationSensor sensor_br(left, -216, -114, distance_br.get(), potentiometer_br.get_angle()-8.65);	
-	double hb  = sensor_tl.y_offset - sensor_tr.y_offset;
-	double hd  = sensor_tl.x_offset - sensor_tr.x_offset;
-	double hg  = sensor_tr.x_offset;
-	double de  = sensor_tl.distance;
-	double bc  = sensor_tr.distance;
-	double hde = sensor_tl.angle*degree_to_radian;
-	double cbi = sensor_tr.angle*degree_to_radian;
 
-    double hdb = atan(hb/hd);
-	double cbd = cbi - hdb;
-	double bd  = sqrt(hb*hb+hd*hd);
-	double bde = hde + hdb; 
-	double be  = sqrt(bd*bd+de*de-2*bd*de*cos(bde));
-	double ebd = acos((be*be+bd*bd-de*de)/(2*be*bd))*(bde>pi?-1:1);
-	double bed = pi - ebd - bde;
-	double cbe = cbd - ebd;
-	double ce  = sqrt(bc*bc+be*be-2*bc*be*cos(cbe));
-	double bec = acos((be*be+ce*ce-bc*bc)/(2*be*ce));
+		/**
+		 * Calibration Sensors contains information about the sensors
+		 * 
+		 * Contains information on the position of the sensor relative to the center of the robot
+		 * Contains sensor values
+		 * Contains the wall the sensor is pointed at
+		 */
+		CalibrationSensor sensor_tl(top, 216, 216, distance_tl.get(), potentiometer_tl.get_angle()+90);
+		CalibrationSensor sensor_tr(none, -216, 216, distance_tr.get(), potentiometer_tr.get_angle()-115.43);
+		CalibrationSensor sensor_br(left, -216, -114, distance_br.get(), potentiometer_br.get_angle()-8.65);	
+		
+		/**
+		 * Uses algorithm described in notebook to calculate the position of the robot relative to the walls
+		 */
+		double hb  = sensor_tl.y_offset - sensor_tr.y_offset;
+		double hd  = sensor_tl.x_offset - sensor_tr.x_offset;
+		double hg  = sensor_tr.x_offset;
+		double de  = sensor_tl.distance;
+		double bc  = sensor_tr.distance;
+		double hde = sensor_tl.angle*degree_to_radian;
+		double cbi = sensor_tr.angle*degree_to_radian;
+
+		double hdb = atan(hb/hd);
+		double cbd = cbi - hdb;
+		double bd  = sqrt(hb*hb+hd*hd);
+		double bde = hde + hdb; 
+		double be  = sqrt(bd*bd+de*de-2*bd*de*cos(bde));
+		double ebd = acos((be*be+bd*bd-de*de)/(2*be*bd))*(bde>pi?-1:1);
+		double bed = pi - ebd - bde;
+		double cbe = cbd - ebd;
+		double ce  = sqrt(bc*bc+be*be-2*bc*be*cos(cbe));
+		double bec = acos((be*be+ce*ce-bc*bc)/(2*be*ce));
 
 
 
-	double original_theta = pi - hde - bed - bec;
-            
-    original_x_loc = be*sin(bec) -hg*sin(original_theta) + sensor_tr.y_offset*cos(original_theta);
-    original_y_loc = sensor_br.distance*cos((90-sensor_br.angle)*pi/180-original_theta) - cos(original_theta)*sensor_br.x_offset - sin(original_theta)*sensor_br.y_offset;
-        
+		double original_theta = pi - hde - bed - bec;
+				
+		original_x_loc = be*sin(bec) -hg*sin(original_theta) + sensor_tr.y_offset*cos(original_theta);
+		original_y_loc = sensor_br.distance*cos((90-sensor_br.angle)*pi/180-original_theta) - cos(original_theta)*sensor_br.x_offset - sin(original_theta)*sensor_br.y_offset;
+			
 
 
+		// Print Sensor values to help with debugging
+		pros::lcd::set_text(0, "sense 1: " + std::to_string(sensor_br.distance) + "   @   " + std::to_string(sensor_br.angle));
+		pros::lcd::set_text(1, "sense 2: " + std::to_string(sensor_tr.distance) + "   @   " + std::to_string(sensor_tr.angle));
+		pros::lcd::set_text(2, "sense 3: " + std::to_string(sensor_tl.distance) + "   @   " + std::to_string(sensor_tl.angle));
 
-	pros::lcd::set_text(0, "sense 1: " + std::to_string(sensor_br.distance) + "   @   " + std::to_string(sensor_br.angle));
-	pros::lcd::set_text(1, "sense 2: " + std::to_string(sensor_tr.distance) + "   @   " + std::to_string(sensor_tr.angle));
-	pros::lcd::set_text(2, "sense 3: " + std::to_string(sensor_tl.distance) + "   @   " + std::to_string(sensor_tl.angle));
+		// Print calculated position and angle of robot to help with debugging
+		pros::lcd::set_text(6, "x: " + std::to_string(original_x_loc*mm_to_inch));
+		pros::lcd::set_text(7, "y: " + std::to_string(original_y_loc*mm_to_inch));
+		pros::lcd::set_text(5, "theta: " + std::to_string(original_theta*radian_to_degree));
 
-	pros::lcd::set_text(6, "x: " + std::to_string(original_x_loc*mm_to_inch));
-	pros::lcd::set_text(7, "y: " + std::to_string(original_y_loc*mm_to_inch));
-	pros::lcd::set_text(5, "theta: " + std::to_string(original_theta*radian_to_degree));
-
-	pros::delay(100);
+		// Extra delay to see debugging values easier
+		pros::delay(100);
 	
 
 
 
 
-
+		// On button A press, move the piston
 		if (controller.get_digital_new_press(DIGITAL_A)) {
 			indexing_flag = !indexing_flag;
 			indexer.set_value(indexing_flag);
 		}
+
+		// Set flywheel to 127 speed
 		flywheel = 127;
 		/** 
          * Arcade Controls 
@@ -310,7 +327,11 @@ int count = 0;
 		chassis_r2 = rightSpeed;
 		chassis_r3 = rightSpeed;
 
-		
+		/**
+		 * Placeholder Odometry Code
+		 * 
+		 * 
+		 */
 		x_loc = original_x_loc + tracking_p.get_angle()*cos(theta)*track_wheel_circumference;
 		y_loc = original_y_loc + tracking_p.get_angle()*cos(theta)*track_wheel_circumference;
 		theta = original_theta + (tracking_f.get_angle() - tracking_b.get_angle())/2.0*track_wheel_circumference;

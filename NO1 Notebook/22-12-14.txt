@@ -11,8 +11,17 @@ Odometry Explanation
 1) The algorithm gets the change in angle from the gyro sensor. 
 
 2) The algorithm uses the angle changed in addition to the distance traveled by one of the tracking
-wheels to calculate the origin of a polar coordinate system.
+wheels to calculate the origin of a local polar coordinate system relative to the robot.
 
-This is done by dividing the length of the arc traveled and dividing by the change 
+This is done by dividing the length of the arc traveled and dividing by the change in theta. Then
+it adds the distance between the center of the robot and the rear tracking wheel and half the 
+distance traveled along the radius of the polar sytem to get the average distance from the radius.
 
-3) 
+This gives the radius as shown by the black arc in the image.
+
+3) Uses the radius and the cahnge in arc to calculate the change in x and y coordinates.
+
+4) Converts those changes to the global positioning system and calculates the new position.
+
+Note: When delta theta is zero, you cannot divide by the angle change, so the algorithm just uses
+the changes in the rotation sensors to calculate the local change in x and y positions. 

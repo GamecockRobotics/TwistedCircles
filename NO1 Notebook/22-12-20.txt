@@ -1,2 +1,27 @@
-Began debugging with dumb algorithm that just takes into account change in x and y coordinates
-without taking curvature of path into account. Algorithm is accurate to 4mm for a 360 degree turn.
+Fixed issue with Inertial Sensor. Inertial Sensor calibrates at the launch of the program, which
+was causing the sensor to return inf while it was calibrating. This will need to be handled in the
+initialization of the program to prevent the program from running into this issue while trying to 
+track the position of the robot.
+
+Tested the odometry algorithm and found that the inertial sensor is not precise enough to implement
+such a complex tracking algorithm. Since the measurement between each sensor is extremely small
+(10 ms), there is not a need to calculate as precisely the changes as small errors in the sensor
+readings will produce larger errors in the calculations. 
+
+To fix this, since theta is small, rather than using a polar coordinate system, the algorithm uses
+the current heading and changes the global position based on the local raw changes in x and y.
+
+CHANGE LOG
+Made theta a double instead of a float for greater precision.
+
+Added a delay at the beginning of the control to allow time for the IMU to calibrate.
+
+Reversed the direction of the forward rotation sensor.
+
+Used only changes in x and changes in y rather than polar coordinate system.
+
+Fixed a conversion error between radians and degrees.
+
+Changed Indexer from toggling on button press to opening waiting a short time then retracting.
+
+Added larger delay to help with debugging.

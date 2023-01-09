@@ -1,0 +1,9 @@
+CHANGE LOG
+Reversed chassis
+
+Reversed x and y axises of odometry.
+
+Fixed turn to goal to calculate correct heading and have correct control loop equation.
+The algorithm only turns left.
+
+Switched to arcade control to help with testing.

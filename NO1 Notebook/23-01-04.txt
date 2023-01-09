@@ -1,0 +1,26 @@
+CHANGE LOG
+Changed some port numbers.
+
+Added constant values for position of hte goal and starting orientation of the robot.
+
+Made global variables for setting chassis speed.
+
+Created an odometry task. 
+Odometry task keeps track of the locaiton of the robot asynchronously. The algorithm calculates
+the change in local x and local y and then adds them to the global position based on the heading
+of the robot.
+
+Created a control task for the speed of the robot.
+1. The loop uses the target speed to calculate the voltage required to maintain that speed.
+2. Use PID to calculate the desired target voltage, the larger the distance from the target speed,
+   the higher above the mainenance voltage the target voltage would be.
+3. Move the actual voltage towards the target voltage without moving faster than the SLEW. This 
+   prevents motors from burning out and other issues with jerking the robot around too fast.
+
+Moved the delay from the opcontrol to the initialize function.
+
+Created a function to turn towards the goal. 
+The function calculates the angle the goal is at from the position on the field and uses a dumb
+algorithm to turn left or right until its close to the desired angle. This algorithm does not yet
+work.
+

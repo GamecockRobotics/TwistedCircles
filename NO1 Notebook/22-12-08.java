@@ -1,9 +1,8 @@
 package src;
 import javadraw.*;
 
-
+// App to test the algorithm for calculating the position of the the robot
 public class App extends Window {
-
     Rectangle robot;
     int select = 0;
     boolean up = false, left = false, right = false, down = false, turnR = false, turnL = false;
@@ -14,20 +13,38 @@ public class App extends Window {
     Text stats;
     String text;
 
+    /**
+     * Creates a window 800px by 800px
+     * @param args no arguments are used
+     */
     public static void main (String[] args) {
         Window.open(800, 800, "Robot Sample");
     }
 
+    /**
+     * Main method where the program runs
+     */
     public void start() {
+        // Draws the robot
         robot = new Rectangle(screen, 600, 190, 100, 100);
+
+        // Draws the lines that the sensors detect
         sense1 = new Line(screen, robot.center().x() + x[0], robot.center().y() + y[0], 0, 0);
         sense1.color(Color.RED);
         sense2 = new Line(screen, robot.center().x() + x[1], robot.center().y() + y[1], 1, 1);
         sense2.color(Color.RED);
         sense3 = new Line(screen, robot.center().x() + x[2], robot.center().y() + y[2], 2, 2);
         sense3.color(Color.RED);
+
+        // draws the statistics used for debugging
         stats = new Text(screen, text, 600, 20);
         
+
+        /**
+         * values for sensors to be used in debugging
+         * 
+         * Values from actual robot to test real situation calculations
+         */ 
         double sensor1Angle    =   54       ;
         double sensor1Distance =  1000        ;
         double sensor2Angle    =     68     ;
@@ -35,9 +52,11 @@ public class App extends Window {
         double sensor3Angle    =       90   ;
         double sensor3Distance =        326  ;
 
+        // Main Control Loop
         while (true) {
             
-
+            // Move Sensors relative to robot with arrows or WASD
+            // Turn sensors with Q and E
             if (select == 0) {
                 if (down) sensor1Distance -= 1;
                 else if (up) sensor1Distance += 1;
@@ -58,7 +77,7 @@ public class App extends Window {
 
 
 
-
+            // Calcuklate values that can be determined by sensors or pre-match measurements
             double hb = y[2] - y[1];
             double hd = x[2] - x[1];
             double hg = x[1];
@@ -67,7 +86,7 @@ public class App extends Window {
             double hde = (sensor3Angle)*Math.PI/180;
             double cbi = Math.PI - (sensor2Angle)*Math.PI/180;
             
-            
+            // Make the neccessary calculations to find the position of the robot
             double hdb = Math.atan(hb/hd);
             double cbd = cbi - hdb;
             double bd = Math.sqrt(hb*hb+hd*hd);
@@ -80,13 +99,14 @@ public class App extends Window {
             double bec = Math.acos((be*be+ce*ce-bc*bc)/(2*be*ce));
 
 
-
+            // Calculates the heading of the robot using the algorithm in the notebook
             double original_theta = Math.PI - hde - bed - bec;
             
+            // Calculates the distance from the wall based on the algorithm in the notebook
             double closeOffset = be*Math.sin(bec) -hg*Math.sin(original_theta) + y[1]*Math.cos(original_theta);
             double farOffset = sensor1Distance*Math.cos((90-sensor1Angle)*Math.PI/180-original_theta) - Math.cos(original_theta)*x[0] - Math.sin(original_theta)*y[0];
         
-
+            // Draw robot and sensors based on user input
             robot.center(farOffset/5, 800 - closeOffset/5);
             robot.rotation(-original_theta/Math.PI*180);
             sense1.pos1(new Location(robot.center().x() + x[0]*Math.cos(robot.rotation()*Math.PI/180)/5 - y[0]*Math.sin(robot.rotation()*Math.PI/180)/5, robot.center().y() + y[0]*Math.cos(robot.rotation()*Math.PI/180)/5 + x[0]*Math.sin(robot.rotation()*Math.PI/180)/5));
@@ -97,6 +117,7 @@ public class App extends Window {
             sense3.pos2(calc(sense3.pos1(), (-robot.rotation()+180+sensor3Angle)*Math.PI/180));
 
 
+            // Values for debugging
             text = 
             "x: " + (int)(farOffset+0.5) + 
             "\ny: " + (int)(closeOffset+0.5) + 
@@ -132,14 +153,22 @@ public class App extends Window {
 
 
 
-
+            // Draws statistic text
             stats.text(text);
             
+            // Updates the window display
             screen.update();
             screen.sleep(0.01);
         }
     }
 
+    /**
+     * Calculates the position on the wall that the sensor points to
+     * 
+     * @param loc the location of the sensor on the robot
+     * @param a the distance of the sensor
+     * @return the position on the wall that the sensor points to
+     */
     public Location calc(Location loc, double a) {
         a= ((a%(2*Math.PI)) + 2*Math.PI)%(2*Math.PI);
         if (a < Math.atan(loc.y()/(800.0-loc.x()))) 
@@ -150,10 +179,13 @@ public class App extends Window {
             return new Location(0, loc.y() + loc.x()*Math.tan(a));
         else if (a < 2*Math.PI - Math.atan((800 - loc.y())/(800 - loc.x()))) 
             return new Location(loc.x() - (800 - loc.y())/Math.tan(a), 800);
-        
         return new Location(800, loc.y() - (800-loc.x())*Math.tan(a));
     }
 
+    /**
+     * Flags the key pressed to control robot
+     * @param key the key pressed
+     */
     public void keyDown(Key key) {
         if (key == Key.SPACE) select = (select+1)%3;
         if (key == Key.LEFT || key == Key.A) left = true;
@@ -164,6 +196,10 @@ public class App extends Window {
         if (key == Key.Q) turnL = true;
     }
 
+    /**
+     * Unflags key released to stop moving the robot
+     * @param key
+     */
     public void keyUp(Key key) {
         if (key == Key.LEFT || key == Key.A) left = false;
         if (key == Key.RIGHT || key == Key.D) right = false;

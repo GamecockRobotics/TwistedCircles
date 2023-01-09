@@ -6,8 +6,6 @@
 #include <cmath>
 #include <string>
 
-
-
 // Define Ports for Motors
 #define CHASSIS_L1_PORT 11
 #define CHASSIS_L2_PORT 12

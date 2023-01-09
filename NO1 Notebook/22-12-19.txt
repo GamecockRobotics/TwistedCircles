@@ -1,4 +1,0 @@
-Fixed issue with Inertial Sensor. Inertial Sensor calibrates at the launch of the program, which
-was causing the sensor to return inf while it was calibrating. This will need to be handled in the
-initialization of the program to prevent the program from running into this issue while trying to 
-track the position of the robot.

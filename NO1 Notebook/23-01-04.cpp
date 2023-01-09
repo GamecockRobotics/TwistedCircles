@@ -160,14 +160,23 @@ int odometry() {
  * Uses PID to get to desired speed as quickly as possible
  */
 int drive () {
+	// The actual voltage for the left and right sides of the chassis
 	int voltage_al = 0, voltage_ar = 0;
+	// The target speed for the left and right sides of the chassis
 	int speed_l, speed_r;
+	// The voltage needed to maintain the speed of the left or right side of the chassis
 	int voltage_ml, voltage_mr;
+	// The target voltage for the left and right side of the chassis
 	int voltage_tl, voltage_tr;
+	// The error, previous error and total error for the left side of the chassis
 	int error_l, prev_error_l = 0, total_error_l = 0;
+	// The error, previous error and total error for the right side of the chassis
 	int error_r, prev_error_r = 0, total_error_r = 0;
-	float kp = 20, kd = 15, ki = 1;
+	// The constant for the pid loop
+	int kp = 20, kd = 15, ki = 1;
+	// The maximum slew rate
 	int slew = 500;
+	// Main control loop
 	while (true) {
 		// Set speed of left and right side of chassis based on tank drive controls 
 		speed_l = left_target*210/127;
@@ -232,7 +241,9 @@ int drive () {
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	// Delay to allow calibration of sensors
 	pros::delay(3000);
+	// Initialize lcd for debugging
 	pros::lcd::initialize();
 }
 
@@ -244,15 +255,25 @@ void initialize() {
  * Used to test odometry
  */
 void turn_to_goal() {
+	// y distance from the goal
 	double y = y_loc - goal_y;
+	// x distance from the goal
 	double x = x_loc - goal_x;
+	// The angle the robot needs to face to be pointing at the goal
 	double target_heading = (x > 0 ? 0 : pi) - atan(y/x);
+	
+	// Debugging
 	pros::lcd::set_text(0, std::to_string(target_heading));
 	pros::lcd::set_text(1, std::to_string((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian)));
 	pros::lcd::set_text(2, std::to_string(fabs((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian - target_heading))));
+	
+	// Main control loop
 	while (fabs((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian - target_heading)) > 0.3) {
+		
+		// Debugging
 		pros::lcd::set_text(1, std::to_string((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian)));
 		pros::lcd::set_text(2, std::to_string(fabs((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian - target_heading))));
+		// If closer to left or right, turn respectively
 		if (theta*degree_to_radian < target_heading) {
 			left_target = 20;
 			right_target = -20;
@@ -261,6 +282,7 @@ void turn_to_goal() {
 			right_target = 20;
 		}
 
+		// Delay to let other tasks run
 		pros::delay(10);
 	}
 }
@@ -332,9 +354,6 @@ void opcontrol() {
 			intake = 0;
 		}
 
-
-		
-		
 		/**
 		 * When A is pressed starts a timer of 5 iterations until piston retracts
 		 * Piston expands if timer value is positive
