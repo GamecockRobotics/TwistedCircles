@@ -258,11 +258,11 @@ void turn_to_goal() {
 		
 		// Turn left or right based on the difference in angles
 		if (theta*degree_to_radian < target_heading) {
-			left_target = 20;
-			right_target = -20;
+			left_target = 50;
+			right_target = -50;
 		} else {
-			left_target = -20;
-			right_target = 20;
+			left_target = -50;
+			right_target = 50;
 		}
 
 		// Delay to let other tasks run
