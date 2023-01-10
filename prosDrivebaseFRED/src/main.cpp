@@ -10,9 +10,11 @@
 #define LEFT_MTR1_PORT 1
 #define LEFT_MTR2_PORT 2
 #define LEFT_MTR3_PORT 3
+#define LEFT_MTR4_PORT 4
 #define RIGHT_MTR1_PORT 8
 #define RIGHT_MTR2_PORT 9
 #define RIGHT_MTR3_PORT 10
+#define RIGHT_MTR4_PORT 6
 #define SLIPGEAR_BUMPER 'h'
 #define LEFT_CATAPULT_PORT 11
 #define RIGHT_CATAPULT_PORT 12
@@ -35,9 +37,11 @@ enum color{red, blue};
 	pros::Motor right_mtr1(RIGHT_MTR1_PORT, true);
 	pros::Motor right_mtr2(RIGHT_MTR2_PORT);
 	pros::Motor right_mtr3(RIGHT_MTR3_PORT,true);
+	pros::Motor right_mtr4(RIGHT_MTR4_PORT, true);
 	pros::Motor left_mtr1(LEFT_MTR1_PORT);
 	pros::Motor left_mtr2(LEFT_MTR2_PORT,true);
 	pros::Motor left_mtr3(LEFT_MTR3_PORT);
+	pros::Motor left_mtr4(LEFT_MTR4_PORT);
 	pros::Motor left_catapult(LEFT_CATAPULT_PORT,MOTOR_GEAR_RED);
 	pros::Motor right_catapult(RIGHT_CATAPULT_PORT,MOTOR_GEAR_RED,true);
 	pros::Motor Intake_1(INTAKE_PORT_1);
@@ -393,20 +397,24 @@ int driveTask(){
 			right_mtr1.move(right);
 			right_mtr2.move(right);
 			right_mtr3.move(right);
+			right_mtr4.move(right);
 		} else {
 			right_mtr1.brake();
 			right_mtr2.brake();
 			right_mtr3.brake();
+			right_mtr4.brake();
 		}
 		if(abs(left) > 5){
 			left = left - 5 * (127/122);
 			left_mtr1.move(left);
 			left_mtr2.move(left);
 			left_mtr3.move(left);
+			left_mtr4.move(left);
 		} else {
 			left_mtr1.brake();
 			left_mtr2.brake();
 			left_mtr3.brake();
+			left_mtr4.brake();
 		}
 
 	
