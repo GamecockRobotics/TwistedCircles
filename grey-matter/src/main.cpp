@@ -16,8 +16,7 @@
 #define CHASSIS_R2_PORT 10
 #define CHASSIS_R3_PORT 15
 #define INTAKE_PORT 19
-#define FLYWHEEL_A1_PORT 19
-#define FLYWHEEL_A2_PORT 19
+#define FLYWHEEL_A_PORT 19
 #define FLYWHEEL_PORT 19
 #define ROLLER_PORT 19
 
@@ -81,15 +80,14 @@ pros::Motor chassis_l3(CHASSIS_L3_PORT);
 pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT);
 pros::Motor roller(ROLLER_PORT);
-pros::Motor flywheel_a1(FLYWHEEL_A1_PORT);
-pros::Motor flywheel_a2(FLYWHEEL_A2_PORT);
+pros::Motor flywheel_angle(FLYWHEEL_A_PORT);
 // Define Pistons
 pros::ADIDigitalOut indexer(INDEXER_PORT);
 // Define Sensors
 pros::Optical roller_sensor(ROLLER_SENSOR_PORT);
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
 pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);
-pros::ADIPotentiometer flywheel_angle(FLYWHEEL_ANGLE_PORT);
+pros::ADIPotentiometer flywheel_angles(FLYWHEEL_ANGLE_PORT);
 pros::IMU gyro(GYRO_PORT);
 
 
@@ -224,6 +222,8 @@ void initialize() {
 	pros::delay(3000);
 	// Initialize lcd for debugging
 	pros::lcd::initialize();
+
+	flywheel_angle.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 }
 
 
@@ -337,6 +337,16 @@ void opcontrol() {
 			intake = 0;
 		}
 		
+		if (controller.get_digital(DIGITAL_UP)) {
+			flywheel_angle = 50;
+			pros::lcd::set_text(0, "15");
+		} else if (controller.get_digital(DIGITAL_DOWN)) {
+			pros::lcd::set_text(1, "-15");
+			flywheel_angle = -50;
+		} else {
+			flywheel_angle.brake();
+		}
+
 		/**
 		 * When A is pressed starts a timer of 5 iterations until piston retracts
 		 * Piston expands if timer value is positive
