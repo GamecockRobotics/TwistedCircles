@@ -1,0 +1,9 @@
+This was the basic user control set up. 
+
+Added a basic deadzone so the robot does not move when the user does not want it to.
+The value skips an unnoticeable amount to go from 0 power to 127 when not in deadzone.
+
+Testing different variations with the catapult so then the driver does not have to manually adjust the catapult arm 
+every time they shoot. This makes it so then it is fast and acurrate to shoot and reload.
+We attempted at using the encoder values to get the arm in the down position but was not accurate enough to stop it at 
+the correct time. 
