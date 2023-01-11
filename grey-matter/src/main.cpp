@@ -16,9 +16,8 @@
 #define CHASSIS_R2_PORT 10
 #define CHASSIS_R3_PORT 15
 #define INTAKE_PORT 19
-#define FLYWHEEL_A_PORT 19
-#define FLYWHEEL_PORT 19
-#define ROLLER_PORT 19
+#define FLYWHEEL_A_PORT 14
+#define FLYWHEEL_PORT 2
 
 // Define Ports for Sensors
 #define ROLLER_SENSOR_PORT 1
@@ -27,7 +26,6 @@
 #define GYRO_PORT 9
 
 // Define Ports for sensors and pistons on the Analog Ports
-#define FLYWHEEL_ANGLE_PORT 1
 #define INDEXER_PORT 2
 #define ENDGAME_PORT 1
 
@@ -79,15 +77,13 @@ pros::Motor chassis_l2(CHASSIS_L2_PORT);
 pros::Motor chassis_l3(CHASSIS_L3_PORT);
 pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT);
-pros::Motor roller(ROLLER_PORT);
 pros::Motor flywheel_angle(FLYWHEEL_A_PORT);
 // Define Pistons
 pros::ADIDigitalOut indexer(INDEXER_PORT);
 // Define Sensors
 pros::Optical roller_sensor(ROLLER_SENSOR_PORT);
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
-pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);
-pros::ADIPotentiometer flywheel_angles(FLYWHEEL_ANGLE_PORT);
+pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);\
 pros::IMU gyro(GYRO_PORT);
 
 
@@ -269,6 +265,21 @@ void turn_to_goal() {
 		pros::delay(10);
 	}
 }
+/**
+* Task used to continuously update flywheel angle and speed to aim at the goal
+*/
+// void aimFlyWheel(int speed,int angle) {
+// 	// Calculates current difference from target position speed and current position and speed
+// 	int angleError = angle - flywheel_angle.get_position();
+// 	int speedError = speed - flywheel.get_voltage();
+
+// 	// Flywheel gain modifier for angle and speed, tested to determine optimal value
+// 	float angleGain = 0.00025;
+// 	float speedGain = 0.00025;
+
+// 	//
+
+// }
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -318,6 +329,11 @@ void autonomous() {}
 void opcontrol() {
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
+	// Sets previous left arrow and right arrow values to false
+	bool rightPrevious = false;
+	bool leftPrevious = true;
+	bool rightCurrent;
+	bool leftCurrent;
 	// Main Control Loop
 
 	pros::Task drive_task(drive);
@@ -326,15 +342,20 @@ void opcontrol() {
 	while (true) {
 		// Debugging for the Intake
 		if (controller.get_digital(DIGITAL_R1)) {
+			pros::lcd::set_text(5, "R1");
 			intake = 127;
 		} else if (controller.get_digital(DIGITAL_R2)) {
 			intake = 60;
+			pros::lcd::set_text(5, "R2");
 		} else if (controller.get_digital(DIGITAL_L1)) {
 			intake = -127;
+			pros::lcd::set_text(5, "L1");
 		} else if (controller.get_digital(DIGITAL_L2)) {
 			intake = -60;
+			pros::lcd::set_text(5, "L2");
 		} else {
 			intake = 0;
+			pros::lcd::set_text(5, "Nothing");
 		}
 		
 		if (controller.get_digital(DIGITAL_UP)) {
@@ -350,13 +371,26 @@ void opcontrol() {
 		/**
 		 * When A is pressed starts a timer of 5 iterations until piston retracts
 		 * Piston expands if timer value is positive
-		 * otherwise piston retracts
+	prospros	 * otherwise piston retracts
 		 */
 		if (controller.get_digital_new_press(DIGITAL_A)) 
 			indexing_flag = 5;
 		indexer.set_value(indexing_flag >= 0);
 		indexing_flag -= 1;
 		
+		// Debugging prints for flywheel
+		pros::lcd::set_text(2, std::to_string((flywheel.get_position())));
+		pros::lcd::set_text(3, std::to_string(flywheel.get_actual_velocity()));
+
+		// Allows flywheel speed to be increased and decresed
+		leftCurrent = controller.get_digital(DIGITAL_LEFT);
+		rightCurrent = controller.get_digital(DIGITAL_RIGHT);
+		if (!leftPrevious && leftCurrent)
+			flywheel = flywheel.get_actual_velocity() - 1; 
+		if (!rightPrevious && rightCurrent)
+			flywheel = flywheel.get_actual_velocity() + 1; 
+		leftPrevious = leftCurrent;
+		rightPrevious = rightCurrent;
 
 		/** 
          * Arcade Controls 
