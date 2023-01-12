@@ -346,29 +346,6 @@ void autonomous() {
 	pros::delay(3000);
 	pros::lcd::set_text(3, "blue");
 	runRoller(blue);
-
-	/* 	
-	drive(-120, -50);
-	runRoller();
-	pros::delay(200);
-	drive(50, 50);
-	turn(right, 90);
-	
-	drive(127, 900);
-	pros::delay(200);
-	turn(left,270);
-	pros::delay(1000);
-	 */
-	//pros::delay(20000);
-	/*
-	drive(127,9000);
-	turn(right, 45);
-	drive(127,2500);
-	turn(left,90);
-	shoot();*/
-
-
-
 }
 
 /**
