@@ -23,7 +23,7 @@
 #define CATAPULT_MAX 600
 #define LAUNCHER_PORT 'g'
 #define GYRO_PORT 13
-#define VISION_PORT 20
+#define VISION_PORT 18
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
@@ -101,6 +101,9 @@ void initialize() {
 	right_mtr1.tare_position();
 	right_mtr2.tare_position();
 	right_mtr3.tare_position();
+
+	gyro.reset();
+	pros::delay(3000);
 
 	// while (cataFlagAuto == 1) {
 	// 	if (!SlipGearSensor.get_value()) {
@@ -341,11 +344,12 @@ void shoot(){
 void autonomous() {
 
 	pros::lcd::set_text(2, "auton started");
-	runRoller(red);
-	pros::lcd::set_text(3, "red");
-	pros::delay(3000);
-	pros::lcd::set_text(3, "blue");
-	runRoller(blue);
+	//runRoller(blue);
+	//drive(70, 100);
+	turn(left, 90);
+
+
+
 }
 
 /**
