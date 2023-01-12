@@ -76,7 +76,7 @@ pros::Motor chassis_l1(CHASSIS_L1_PORT);
 pros::Motor chassis_l2(CHASSIS_L2_PORT);
 pros::Motor chassis_l3(CHASSIS_L3_PORT);
 pros::Motor intake(INTAKE_PORT, true);
-pros::Motor flywheel(FLYWHEEL_PORT);
+pros::Motor flywheel(FLYWHEEL_PORT, true);
 pros::Motor flywheel_angle(FLYWHEEL_A_PORT);
 // Define Pistons
 pros::ADIDigitalOut indexer(INDEXER_PORT);
@@ -329,12 +329,10 @@ void autonomous() {}
 void opcontrol() {
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
-	// Sets previous left arrow and right arrow values to false
-	bool rightPrevious = false;
-	bool leftPrevious = true;
-	bool rightCurrent;
-	bool leftCurrent;
+	int flywheel_v = 0;
 	// Main Control Loop
+
+
 
 	pros::Task drive_task(drive);
 	pros::Task odometry_task(odometry);
@@ -374,23 +372,29 @@ void opcontrol() {
 	prospros	 * otherwise piston retracts
 		 */
 		if (controller.get_digital_new_press(DIGITAL_A)) 
-			indexing_flag = 5;
+			indexing_flag = 8;
 		indexer.set_value(indexing_flag >= 0);
 		indexing_flag -= 1;
 		
 		// Debugging prints for flywheel
-		pros::lcd::set_text(2, std::to_string((flywheel.get_position())));
-		pros::lcd::set_text(3, std::to_string(flywheel.get_actual_velocity()));
+		pros::lcd::set_text(2, "angle: " + std::to_string((flywheel_angle.get_position())));
+		pros::lcd::set_text(3, "speed: " + std::to_string(flywheel.get_actual_velocity()));
 
 		// Allows flywheel speed to be increased and decresed
-		leftCurrent = controller.get_digital(DIGITAL_LEFT);
-		rightCurrent = controller.get_digital(DIGITAL_RIGHT);
-		if (!leftPrevious && leftCurrent)
-			flywheel = flywheel.get_actual_velocity() - 1; 
-		if (!rightPrevious && rightCurrent)
-			flywheel = flywheel.get_actual_velocity() + 1; 
-		leftPrevious = leftCurrent;
-		rightPrevious = rightCurrent;
+		if (controller.get_digital_new_press(DIGITAL_LEFT)) 
+			flywheel_v += -1;
+		if (controller.get_digital_new_press(DIGITAL_RIGHT))
+			flywheel_v += 1;
+		if (flywheel_v > 200) 
+			flywheel_v = 200;
+		if (flywheel_v < -200)
+			flywheel_v = -200;
+		
+		flywheel = flywheel_v;
+
+		if (controller.get_digital_new_press(DIGITAL_Y))
+			flywheel_v = 200;
+		
 
 		/** 
          * Arcade Controls 
@@ -421,7 +425,7 @@ void opcontrol() {
 		
 	
 		// Turn to goal when A pressed on the controller
-		if (controller.get_digital(DIGITAL_A)) {
+		if (controller.get_digital(DIGITAL_X)) {
 			turn_to_goal();
 		}
 
