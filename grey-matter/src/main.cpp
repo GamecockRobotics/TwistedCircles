@@ -1,4 +1,5 @@
 #include "main.h"
+#include "pros/adi.hpp"
 #include "pros/error.h"
 #include "pros/llemu.hpp"
 #include "pros/misc.h"
@@ -18,6 +19,7 @@
 #define INTAKE_PORT 19
 #define FLYWHEEL_A_PORT 14
 #define FLYWHEEL_PORT 2
+#define ROLLER_PORT 18
 
 // Define Ports for Sensors
 #define ROLLER_SENSOR_PORT 1
@@ -28,6 +30,7 @@
 // Define Ports for sensors and pistons on the Analog Ports
 #define INDEXER_PORT 2
 #define ENDGAME_PORT 1
+#define POTENTIOMETER_PORT 3
 
 
 // The value of pi
@@ -78,6 +81,7 @@ pros::Motor chassis_l3(CHASSIS_L3_PORT);
 pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT, true);
 pros::Motor flywheel_angle(FLYWHEEL_A_PORT);
+pros::Motor roller(ROLLER_PORT);
 // Define Pistons
 pros::ADIDigitalOut indexer(INDEXER_PORT);
 // Define Sensors
@@ -85,6 +89,7 @@ pros::Optical roller_sensor(ROLLER_SENSOR_PORT);
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
 pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);\
 pros::IMU gyro(GYRO_PORT);
+pros::ADIPotentiometer potentiometer(POTENTIOMETER_PORT);
 
 
 /**
@@ -356,15 +361,26 @@ void opcontrol() {
 			pros::lcd::set_text(5, "Nothing");
 		}
 		
-		if (controller.get_digital(DIGITAL_UP)) {
-			flywheel_angle = 50;
-			pros::lcd::set_text(0, "15");
-		} else if (controller.get_digital(DIGITAL_DOWN)) {
-			pros::lcd::set_text(1, "-15");
-			flywheel_angle = -50;
+		// Changes flywheel angle based off of right joy stick
+
+		int angleChange = controller.get_analog(ANALOG_RIGHT_Y);
+		if (angleChange > 5  || angleChange < -5) {
+			flywheel_angle = (angleChange * 50) / 127;
 		} else {
 			flywheel_angle.brake();
 		}
+
+		// Old flywheel angle code
+
+		// if (controller.get_digital(DIGITAL_UP)) {
+		// 	flywheel_angle = 50;
+		// 	pros::lcd::set_text(0, "15");
+		// } else if (controller.get_digital(DIGITAL_DOWN)) {
+		// 	pros::lcd::set_text(1, "-15");
+		// 	flywheel_angle = -50;
+		// } else {
+		// 	flywheel_angle.brake();
+		// }
 
 		/**
 		 * When A is pressed starts a timer of 5 iterations until piston retracts
@@ -377,7 +393,7 @@ void opcontrol() {
 		indexing_flag -= 1;
 		
 		// Debugging prints for flywheel
-		pros::lcd::set_text(2, "angle: " + std::to_string((flywheel_angle.get_position())));
+		pros::lcd::set_text(2, "angle: " + std::to_string((potentiometer.get_angle())));
 		pros::lcd::set_text(3, "speed: " + std::to_string(flywheel.get_actual_velocity()));
 
 		// Allows flywheel speed to be increased and decresed
@@ -385,16 +401,29 @@ void opcontrol() {
 			flywheel_v += -1;
 		if (controller.get_digital_new_press(DIGITAL_RIGHT))
 			flywheel_v += 1;
-		if (flywheel_v > 200) 
-			flywheel_v = 200;
-		if (flywheel_v < -200)
-			flywheel_v = -200;
+		if (flywheel_v > 127) 
+			flywheel_v = 127;
+		if (flywheel_v < -127)
+			flywheel_v = -127;
 		
 		flywheel = flywheel_v;
 
-		if (controller.get_digital_new_press(DIGITAL_Y))
-			flywheel_v = 200;
+		if (controller.get_digital_new_press(DIGITAL_Y) ) {
+			if (flywheel_v < 5 && flywheel_v > -5)
+				flywheel_v = 127;
+			else
+			 flywheel_v = 0;
+		}
 		
+		// Roller code
+
+		if (controller.get_digital(DIGITAL_UP)) {
+			roller = 127;
+		} else if (controller.get_digital(DIGITAL_DOWN)) {
+			roller = -127;
+		} else {
+			roller.brake();
+		}
 
 		/** 
          * Arcade Controls 
