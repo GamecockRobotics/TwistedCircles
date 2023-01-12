@@ -102,8 +102,8 @@ void initialize() {
 	right_mtr2.tare_position();
 	right_mtr3.tare_position();
 
-	gyro.reset();
-	pros::delay(3000);
+	//gyro.reset();
+	//pros::delay(3000);
 
 	// while (cataFlagAuto == 1) {
 	// 	if (!SlipGearSensor.get_value()) {
@@ -162,23 +162,25 @@ void tareMotors(){
 }
 
 void drive(int power, float distance){
-	tareMotors();
-	left_mtr1.move_absolute(distance, power);
-	left_mtr2.move_absolute(distance, power);
-	left_mtr3.move_absolute(distance, power);
-	right_mtr1.move_absolute(distance, power);
-	right_mtr2.move_absolute(distance,power);
-	right_mtr3.move_absolute(distance, power);
-	while (!((left_mtr1.get_position() < distance+5) && (left_mtr1.get_position() > distance-5))) {
+	// Resets motor position to ensure accuracy in autonomous
+    tareMotors();
+    // Drives specified distance
+	left_mtr1.move_absolute(distance*13.37*2.5, power);
+	left_mtr2.move_absolute(distance*13.37*2.5, power);
+	left_mtr3.move_absolute(distance*13.37*2.5, power);
+	left_mtr4.move_absolute(distance*13.37*2.5, power);
+	right_mtr1.move_absolute(distance*13.37*2.5, power);
+	right_mtr2.move_absolute(distance*13.37*2.5, power);
+	right_mtr3.move_absolute(distance*13.37*2.5, power);
+	right_mtr4.move_absolute(distance*13.37*2.5, power);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
-    pros::delay(2);
-  }
+	while (!(left_mtr1.get_actual_velocity() == 0)) {
+        pros::delay(2);
+    }
+}
 	
-}
 
-void drivePID(std::string dir, float distance){
 
-}
 
 void turn(turnType dir, int32_t deg) {
 	
@@ -197,9 +199,11 @@ void turn(turnType dir, int32_t deg) {
     left_mtr1.move(dir == left ? -speed : speed);
     left_mtr2.move(dir == left ? -speed : speed);
     left_mtr3.move(dir == left ? -speed : speed);
+	left_mtr4.move(dir == left ? -speed : speed);
     right_mtr1.move(dir == right ? -speed : speed);
     right_mtr2.move(dir == right ? -speed : speed);
     right_mtr3.move(dir == right ? -speed : speed);
+	right_mtr4.move(dir == right ? -speed : speed);
     pros::delay(200);
     prevError = error;
 	std::string second = std::to_string((float)gyro.get_rotation());
@@ -345,7 +349,8 @@ void autonomous() {
 
 	pros::lcd::set_text(2, "auton started");
 	//runRoller(blue);
-	//drive(70, 100);
+	drive(70, 24);
+	pros::delay(10);
 	turn(left, 90);
 
 
