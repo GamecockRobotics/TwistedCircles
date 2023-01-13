@@ -156,9 +156,11 @@ void tareMotors(){
 	left_mtr1.tare_position();
 	left_mtr2.tare_position();
 	left_mtr3.tare_position();
+	left_mtr4.tare_position();
 	right_mtr1.tare_position();
 	right_mtr2.tare_position();
 	right_mtr3.tare_position();
+	right_mtr4.tare_position();
 }
 
 void drive(int power, float distance){
@@ -173,10 +175,15 @@ void drive(int power, float distance){
 	right_mtr2.move_absolute(distance*13.37*2.5, power);
 	right_mtr3.move_absolute(distance*13.37*2.5, power);
 	right_mtr4.move_absolute(distance*13.37*2.5, power);
+	pros::lcd::set_text(3, "driving");
+	pros::delay(100);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
 	while (!(left_mtr1.get_actual_velocity() == 0)) {
         pros::delay(2);
+		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
+		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
     }
+	pros::lcd::set_text(3, "done driving");
 }
 	
 
@@ -349,9 +356,9 @@ void autonomous() {
 
 	pros::lcd::set_text(2, "auton started");
 	//runRoller(blue);
-	drive(70, 24);
+	drive(40, 50);
 	pros::delay(10);
-	turn(left, 90);
+	turn(right, 90);
 
 
 
