@@ -21,6 +21,7 @@
 #define INTAKE_PORT 19
 #define FLYWHEEL_A_PORT 14
 #define FLYWHEEL_PORT 2
+#define ROLLER_PORT 18
 
 // Define Ports for Sensors
 #define ROLLER_SENSOR_PORT 1
@@ -84,6 +85,7 @@ pros::Motor chassis_l3(CHASSIS_L3_PORT);
 pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT, true);
 pros::Motor flywheel_angle(FLYWHEEL_A_PORT, true);
+pros::Motor roller(ROLLER_PORT);
 // Define Pistons
 pros::ADIDigitalOut indexer(INDEXER_PORT);
 // Define Sensors
@@ -411,6 +413,18 @@ void opcontrol() {
 		else
 			intake = 0;
 
+		// Old flywheel angle code
+
+		// if (controller.get_digital(DIGITAL_UP)) {
+		// 	flywheel_angle = 50;
+		// 	pros::lcd::set_text(0, "15");
+		// } else if (controller.get_digital(DIGITAL_DOWN)) {
+		// 	pros::lcd::set_text(1, "-15");
+		// 	flywheel_angle = -50;
+		// } else {
+		// 	flywheel_angle.brake();
+		// }
+
 		/**
 		 * When A is pressed starts a timer of 8 iterations until piston retracts
 		 * Piston expands if timer value is positive
@@ -428,6 +442,16 @@ void opcontrol() {
         // Allow user to manually adjust flywheel speed
 		if (controller.get_digital(DIGITAL_LEFT)) flywheel_offset -= 1;
         if (controller.get_digital_new_press(DIGITAL_RIGHT)) flywheel_offset += 1;
+		
+		// Roller code
+
+		if (controller.get_digital(DIGITAL_UP)) {
+			roller = 127;
+		} else if (controller.get_digital(DIGITAL_DOWN)) {
+			roller = -127;
+		} else {
+			roller.brake();
+		}
 
 		/** 
          * Arcade Controls 

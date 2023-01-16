@@ -23,7 +23,7 @@
 #define CATAPULT_MAX 600
 #define LAUNCHER_PORT 'g'
 #define GYRO_PORT 13
-#define VISION_PORT 20
+#define VISION_PORT 18
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
@@ -102,6 +102,9 @@ void initialize() {
 	right_mtr2.tare_position();
 	right_mtr3.tare_position();
 
+	//gyro.reset();
+	//pros::delay(3000);
+
 	// while (cataFlagAuto == 1) {
 	// 	if (!SlipGearSensor.get_value()) {
 	// 		cataFlagAuto = 1;
@@ -153,140 +156,123 @@ void tareMotors(){
 	left_mtr1.tare_position();
 	left_mtr2.tare_position();
 	left_mtr3.tare_position();
+	left_mtr4.tare_position();
 	right_mtr1.tare_position();
 	right_mtr2.tare_position();
 	right_mtr3.tare_position();
+	right_mtr4.tare_position();
 }
 
 void drive(int power, float distance){
-	tareMotors();
-	left_mtr1.move_absolute(distance, power);
-	left_mtr2.move_absolute(distance, power);
-	left_mtr3.move_absolute(distance, power);
-	right_mtr1.move_absolute(distance, power);
-	right_mtr2.move_absolute(distance,power);
-	right_mtr3.move_absolute(distance, power);
-	while (!((left_mtr1.get_position() < distance+5) && (left_mtr1.get_position() > distance-5))) {
+	// Resets motor position to ensure accuracy in autonomous
+    tareMotors();
+    // Drives specified distance
+	left_mtr1.move_absolute(distance*13.37*2.5, power);
+	left_mtr2.move_absolute(distance*13.37*2.5, power);
+	left_mtr3.move_absolute(distance*13.37*2.5, power);
+	left_mtr4.move_absolute(distance*13.37*2.5, power);
+	right_mtr1.move_absolute(distance*13.37*2.5, power);
+	right_mtr2.move_absolute(distance*13.37*2.5, power);
+	right_mtr3.move_absolute(distance*13.37*2.5, power);
+	right_mtr4.move_absolute(distance*13.37*2.5, power);
+	pros::lcd::set_text(3, "driving");
+	pros::delay(250);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
-    pros::delay(2);
-  }
+	while (!(left_mtr1.get_actual_velocity() == 0)) {
+        pros::delay(2);
+		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
+		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
+    }
+	pros::lcd::set_text(3, "done driving");
+}
 	
-}
 
-void drivePID(std::string dir, float distance){
 
-}
 
 void turn(turnType dir, int32_t deg) {
-	
-  float initialValue = gyro.get_rotation();
+ tareMotors();
+ float initialValue = gyro.get_rotation();
+  if (deg > 0) {
+	deg -= 8;
+  }
+  else {
+	deg += 8;
+  }
   float error = deg;
+  // Accounts for unknown error in turn
   float prevError = deg;
   float totalError = 0;
-  const float threshold = 2.0;
-  const float kp = 2.1;
-  const float kd = 1.65;
-  const float ki = 0.09;
+  const float threshold = .25;
+  const float kp = 1.35;
+  const float ki = .7;
+  const float kd = .9;
   std::string first = std::to_string(gyro.get_rotation());
   pros::lcd::set_text(4, "Gyro Value: " + first);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
-    int speed = kp * error + kd * (error - prevError) + ki * totalError;
+    int speed = (kp * error + kd * (error - prevError) + ki * totalError) * 9 / 10;
     left_mtr1.move(dir == left ? -speed : speed);
     left_mtr2.move(dir == left ? -speed : speed);
     left_mtr3.move(dir == left ? -speed : speed);
+	left_mtr4.move(dir == left ? -speed : speed);
     right_mtr1.move(dir == right ? -speed : speed);
     right_mtr2.move(dir == right ? -speed : speed);
     right_mtr3.move(dir == right ? -speed : speed);
+	right_mtr4.move(dir == right ? -speed : speed);
     pros::delay(200);
     prevError = error;
 	std::string second = std::to_string((float)gyro.get_rotation());
   	pros::lcd::set_text(5, "Gyro Value In while: " + second);
-    error = deg - (fabs((float)gyro.get_rotation()) - fabs(initialValue));
+    error = deg - (gyro.get_rotation() - initialValue);
 	std::string errorInWhile = std::to_string(error);
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
     totalError += (fabs(error) < 10 ? error : 0);
   }
-  pros::lcd::set_text(7, "Im out of turn PID");
+  pros::lcd::set_text(7, "I'm out of PID");
   	left_mtr1.move(0);
 	left_mtr2.move(0);
     left_mtr3.move(0);
     right_mtr1.move(0);
     right_mtr2.move(0);
     right_mtr3.move(0);
-  right_mtr1.brake();
-  right_mtr2.brake();
-  right_mtr3.brake();
-  left_mtr1.brake();
-  left_mtr2.brake();
-  left_mtr3.brake();
+	right_mtr1.brake();
+	right_mtr2.brake();
+	right_mtr3.brake();
+	left_mtr1.brake();
+	left_mtr2.brake();
+	left_mtr3.brake();
 }
 
-void runRoller(color color){
+void runRoller(){
 	vision.set_led_pwm(100);
 	pros::lcd::set_text(4, std::to_string(vision.get_hue()));
 	left_mtr1 = -20;
 	left_mtr2 = -20;
 	left_mtr3 = -20;
+	left_mtr4 = -20;
 	right_mtr1 = -20;
 	right_mtr2 = -20;
 	right_mtr3 = -20;
+	right_mtr4 = -20;
 
-	if (color == blue) {
-		// Rolls roller until it sees red
-		while (!(vision.get_hue() > 300 || vision.get_hue() < 20)) {
-			Intake_1.move(127);
-			Intake_2.move(127);
-			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
-			// pushes the robot into the roller
-			left_mtr1 = -20;
-			left_mtr2 = -20;
-			left_mtr3 = -20;
-			right_mtr1 = -20;
-			right_mtr2 = -20;
-			right_mtr3 = -20;
-		}
-		// Rolls roller until it sees blue, this means that red is in place
-		while (vision.get_hue() > 300 || vision.get_hue() < 20) {
-			Intake_1.move(127);
-			Intake_2.move(127);
-			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
-			// pushes the robot into the roller
-			left_mtr1 = -20;
-			left_mtr2 = -20;
-			left_mtr3 = -20;
-			right_mtr1 = -20;
-			right_mtr2 = -20;
-			right_mtr3 = -20;
+	int counter = 0;
+
+	if ((vision.get_hue() > 300 || vision.get_hue() < 20 )) {
+		while ((vision.get_hue() > 300 || vision.get_hue() < 20) && counter < 200000) {
+			Intake_1.move(50);
+			Intake_2.move(50);
+			counter++;
+			pros::lcd::set_text(6, std::to_string(counter / 1000));
 		}
 	}
-	if (color == red) {
-		// Rolls roller until it sees blue
-		while (!(vision.get_hue() < 300 && vision.get_hue() > 100)) {
-			Intake_1.move(127);
-			Intake_2.move(127);
-			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
-			// pushes the robot into the roller
-			left_mtr1 = -20;
-			left_mtr2 = -20;
-			left_mtr3 = -20;
-			right_mtr1 = -20;
-			right_mtr2 = -20;
-			right_mtr3 = -20;
-		}
-		// Rolls roller until it sees red, this means that blue is in place
-		while (vision.get_hue() < 300 && vision.get_hue() > 100) {
-			Intake_1.move(127);
-			Intake_2.move(127);
-			pros::lcd::set_text(5, std::to_string(vision.get_hue()));
-			// pushes the robot into the roller
-			left_mtr1 = -20;
-			left_mtr2 = -20;
-			left_mtr3 = -20;
-			right_mtr1 = -20;
-			right_mtr2 = -20;
-			right_mtr3 = -20;
+	else if (vision.get_hue() < 300 && vision.get_hue() > 20){
+		while ((vision.get_hue() < 300 && vision.get_hue() > 20) && counter < 200000) {
+			Intake_1.move(50);
+			Intake_2.move(50);
+			counter++;
+			pros::lcd::set_text(6, std::to_string(counter / 1000));
 		}
 	}
+
 	// Stops the intake, robot movement, and turns off flashlight
 	Intake_1.brake();
 	Intake_2.brake();
@@ -339,33 +325,46 @@ void shoot(){
 }
 
 void autonomous() {
+	
+	// For testing turn
+	// turn(right, -88);
+	// pros::delay(3000);
+	// turn(right, 180);
+	// pros::delay(3000);
+	// turn(right, -90);
+	// pros::delay(3000);
+	// turn(right, -180);
+	// pros::delay(3000);
 
 	pros::lcd::set_text(2, "auton started");
-	runRoller(red);
-	pros::lcd::set_text(3, "red");
-	pros::delay(3000);
-	pros::lcd::set_text(3, "blue");
-	runRoller(blue);
-
-	/* 	
-	drive(-120, -50);
+	drive(20, -15);
+	pros::delay(200);
+	drive(40, 2);
+	pros::delay(200);
 	runRoller();
 	pros::delay(200);
-	drive(50, 50);
-	turn(right, 90);
-	
-	drive(127, 900);
+	drive(30, 6);
 	pros::delay(200);
-	turn(left,270);
-	pros::delay(1000);
-	 */
-	//pros::delay(20000);
-	/*
-	drive(127,9000);
-	turn(right, 45);
-	drive(127,2500);
-	turn(left,90);
-	shoot();*/
+	turn(right, -90);
+	pros::delay(200);
+	drive(50, -110);
+	pros::delay(200);
+	drive(30, 6);
+	pros::delay(200);
+	turn(right, -90);
+	pros::delay(200);
+	drive(50, 4);
+	pros::delay(200);
+	drive(50, -98);
+	pros::delay(200);
+	turn(right, 90);
+	pros::delay(200);
+	drive(20, -15);
+	pros::delay(200);
+	drive(40, 1);
+	pros::delay(200);
+	runRoller();
+	pros::delay(200);
 
 
 

@@ -1,0 +1,26 @@
+CHANGE LOG
+
+Changed some ports from placeholder value of 19 to actual ports
+
+Made angle changer hold its position when not moving
+
+Started tasks in initialize rather than at the begining of the usercontrol function
+
+Increased the time of the indexer extension from 50ms to 80ms
+
+Added task for flywheel control
+ - When the intake is running the flywheel angles up. Flywheel needs to be up to load disks
+ - Target speed = 0.024866 * (distance from goal) + 3.172274 * (angle of flywheel) + -193.229168
+ - Target speed can be manually adjusted by driver if needed
+ - Flywheel reaches target speed using take back half algorithm
+
+Take Back Half algorithm works by increasing the voltage proportional to the error in velocities.
+If the voltage overshoots, the voltage drops to half way between the current voltage and the tbh value.
+The tbh value initially starts at 6000, but changes to the new voltage value after each overshot.
+
+Example
+Voltage increases to 12000 in order to get to target velocity and overshoots.
+Voltage is set to the average of tbh and current voltage, so voltage and tbh is set to 9000
+Voltage is not enough, so it increases to 11000 and overshoots again
+Voltage is set to the average of tbh and current voltage, so voltage and tbh is set to 10000
+Voltage is close to desired speed and does not overshoot again

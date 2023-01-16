@@ -1,0 +1,12 @@
+We tested the robot at different positions on the field with different angles and speeds.
+We collected data on the angles and speeds that would score in the high goal at different positions.
+
+We then wrote some code in python that takes the given 3 dimensional points and calculates a plane of best fit
+minimizing the vertical distance between each point and the plane. 
+
+There was a single outlier in our data that was causing errors in the plane calculations. This was the data point 
+for shooting really close to the goal and rather than making an arc into the goal was shooting at the top of the goal
+at full power and was bouncing into the goal. This data point was removed for the calculation of the plane of best fit.
+
+This plane will be used with the two dependent variables, Distance from goal and angle of robot, to calculate the desired 
+speed of the flywheel.
