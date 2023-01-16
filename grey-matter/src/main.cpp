@@ -1,9 +1,12 @@
 #include "main.h"
+#include "pros/adi.h"
+#include "pros/adi.hpp"
 #include "pros/error.h"
 #include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
 #include "pros/rtos.hpp"
+#include <cctype>
 #include <cmath>
 #include <string>
 #include <sys/errno.h>
@@ -28,6 +31,7 @@
 // Define Ports for sensors and pistons on the Analog Ports
 #define INDEXER_PORT 2
 #define ENDGAME_PORT 1
+#define FLYWHEEL_POTENTIOMETER_PORT 3
 
 
 // The value of pi
@@ -61,9 +65,11 @@ double x_loc = 3467, y_loc = 1524;
 // Variable to keep track of the Orientation of the Robot
 double theta = 0;
 
-
 // Variables to store the target speed for each side of the chassis
 int left_target = 0, right_target = 0;
+
+// allow user to adjust flywheel speed as necessary
+int flywheel_offset = 0;
 
 
 // Define Controller
@@ -77,13 +83,14 @@ pros::Motor chassis_l2(CHASSIS_L2_PORT);
 pros::Motor chassis_l3(CHASSIS_L3_PORT);
 pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT, true);
-pros::Motor flywheel_angle(FLYWHEEL_A_PORT);
+pros::Motor flywheel_angle(FLYWHEEL_A_PORT, true);
 // Define Pistons
 pros::ADIDigitalOut indexer(INDEXER_PORT);
 // Define Sensors
 pros::Optical roller_sensor(ROLLER_SENSOR_PORT);
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
-pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);\
+pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);
+pros::ADIPotentiometer flywheel_potentiometer(FLYWHEEL_POTENTIOMETER_PORT);
 pros::IMU gyro(GYRO_PORT);
 
 
@@ -146,9 +153,9 @@ int drive () {
 	// The error, previous error and total error for the right side of the chassis
 	int error_r, prev_error_r = 0, total_error_r = 0;
 	// The constant for the pid loop
-	int kp = 20, kd = 15, ki = 1;
-	// The maximum slew rate
-	int slew = 500;
+	int kp = 25, kd = 20, ki = 1;
+	// The maximum slew rate; variable based on direction robot is traveling to prevent tipping
+	int slew;
 	// Main control loop
 	while (true) {
 		// Set speed of left and right side of chassis based on tank drive controls 
@@ -174,6 +181,7 @@ int drive () {
 
 		// Calculate Target velocity using the maintenance velocity as a base line and a PID
 		// controller to reach that velocity
+		
 		voltage_tl = voltage_ml + kp*error_l + kd*(prev_error_l - error_l);
 		voltage_tr = voltage_mr + kp*error_r + kd*(prev_error_r - error_r);
 
@@ -181,11 +189,14 @@ int drive () {
 		prev_error_l = error_l;
 		prev_error_r = error_r;
 
+
 		// Move actual voltage towards target voltage by an increment no greater than the slew rate
+		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 300 :800;
+
 		if (abs(voltage_al - voltage_tl) <= slew) voltage_al = voltage_tl;
-		else voltage_al += abs(voltage_al - voltage_tl)/(voltage_tl - voltage_al)*slew;
+		else voltage_al += std::signbit(voltage_al - voltage_tl) ? slew : -slew;
 		if (abs(voltage_ar - voltage_tr) <= slew) voltage_ar = voltage_tr;
-		else voltage_ar += abs(voltage_ar - voltage_tr)/(voltage_tr - voltage_ar)*slew;
+		else voltage_ar += std::signbit(voltage_ar - voltage_tr) ? slew : -slew;
 
 		// Make sure actual voltage lies between -12000 and 12000 mv
 		if (voltage_al > 12000) voltage_al = 12000;
@@ -208,18 +219,93 @@ int drive () {
 }
 
 /**
+ * Gets the distance from the robot to the goal
+ *
+ * @return the distance in mm between the robot and the goal
+ */
+double get_goal_distance() {
+	return sqrt((x_loc-646)*(x_loc-646)+(y_loc-646)*(y_loc-646));
+}
+
+
+/**
+ * Task to control flywheel speed using take back half algorithm
+ */
+int flywheel_task () {
+	// variable to store the target speed
+	int flywheel_target = 150;
+	// take back half constant for getting close to desired speed
+	int tbh = 6000;
+	// the difference between the desired and actual speed
+	int error;
+	// the actual voltage to set the motor speed to
+	int output = 0;
+
+	// Control loop for flywheel
+	while (true) {
+		// Move the angle up while intaking
+		if (intake.get_actual_velocity() > 50) {
+			if (flywheel_potentiometer.get_angle() < 103) 
+				flywheel_angle.brake();
+			else
+				flywheel_angle = 50;
+		} else if (controller.get_digital(DIGITAL_DOWN)) {
+			flywheel_angle = -50;
+		} else {
+			flywheel_angle.brake();
+		}
+
+		// Calculate flywheel speed based on position and angle
+		flywheel_target = 0.024866 * get_goal_distance() + 3.172274 * flywheel_potentiometer.get_angle() + -193.229168 +flywheel_offset;
+
+
+		// calculate differencec in desired speed
+		error = flywheel_target - flywheel.get_actual_velocity();
+
+		// accumulate voltage to get to good speed
+		output += error;
+		
+		// If going to fast slow down some
+		if (error < -5) {
+			output = (output+tbh)/2;
+			tbh = output;
+		}
+
+		// Prevent exceeding maximum voltage to not cause errors in calculations
+		if (output > 12000) output = 12000;
+
+		// Set Flywheel speed to calculated value
+		flywheel.move_voltage(output);
+
+
+		// Delay so other processes can run
+		pros::delay(10);
+	}
+	return 0;
+}
+
+/**
  * Runs initialization code. This occurs as soon as the program is started.
  *
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
+	
+
 	// Delay to allow calibration of sensors
-	pros::delay(3000);
+	// pros::delay(3000);
 	// Initialize lcd for debugging
 	pros::lcd::initialize();
 
+
+	pros::Task drive_task(drive);
+	pros::Task odometry_task(odometry);
+	//pros::Task run_flywheel_task(flywheel_task);
+
+
 	flywheel_angle.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+	
 }
 
 
@@ -240,17 +326,17 @@ void turn_to_goal() {
 	double target_heading = fmod(((x > 0 ? 2*pi : 3*pi) - atan(y/x)),2*pi);
 
 	// Debugging values
-	pros::lcd::set_text(0, std::to_string(target_heading));
-	pros::lcd::set_text(1, std::to_string((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian)));
-	pros::lcd::set_text(2, std::to_string(fabs((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian - target_heading))));
+	//pros::lcd::set_text(0, std::to_string(target_heading));
+	//pros::lcd::set_text(1, std::to_string((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian)));
+	//pros::lcd::set_text(2, std::to_string(fabs((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian - target_heading))));
 	
 	// Control loop to reach desired target
 	// Converts theta to a positive value between 0 and 2pi
 	// while difference is less than 0.2 radians (17 degrees)
 	while(fabs((std::fmod(std::fmod(theta,360)+360,360)*degree_to_radian-target_heading))>0.3){
 		// Debugging
-		pros::lcd::set_text(1, std::to_string((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian)));
-		pros::lcd::set_text(2, std::to_string(fabs((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian - target_heading))));
+		//pros::lcd::set_text(1, std::to_string((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian)));
+		//pros::lcd::set_text(2, std::to_string(fabs((std::fmod(std::fmod(theta, 360)+360, 360)*degree_to_radian - target_heading))));
 		
 		// Turn left or right based on the difference in angles
 		if (theta*degree_to_radian < target_heading) {
@@ -265,21 +351,7 @@ void turn_to_goal() {
 		pros::delay(10);
 	}
 }
-/**
-* Task used to continuously update flywheel angle and speed to aim at the goal
-*/
-// void aimFlyWheel(int speed,int angle) {
-// 	// Calculates current difference from target position speed and current position and speed
-// 	int angleError = angle - flywheel_angle.get_position();
-// 	int speedError = speed - flywheel.get_voltage();
 
-// 	// Flywheel gain modifier for angle and speed, tested to determine optimal value
-// 	float angleGain = 0.00025;
-// 	float speedGain = 0.00025;
-
-// 	//
-
-// }
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -329,47 +401,20 @@ void autonomous() {}
 void opcontrol() {
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
-	int flywheel_v = 0;
 	// Main Control Loop
-
-
-
-	pros::Task drive_task(drive);
-	pros::Task odometry_task(odometry);
-
 	while (true) {
 		// Debugging for the Intake
-		if (controller.get_digital(DIGITAL_R1)) {
-			pros::lcd::set_text(5, "R1");
+		if (controller.get_digital(DIGITAL_R1))
 			intake = 127;
-		} else if (controller.get_digital(DIGITAL_R2)) {
-			intake = 60;
-			pros::lcd::set_text(5, "R2");
-		} else if (controller.get_digital(DIGITAL_L1)) {
+		else if (controller.get_digital(DIGITAL_R2))
 			intake = -127;
-			pros::lcd::set_text(5, "L1");
-		} else if (controller.get_digital(DIGITAL_L2)) {
-			intake = -60;
-			pros::lcd::set_text(5, "L2");
-		} else {
+		else
 			intake = 0;
-			pros::lcd::set_text(5, "Nothing");
-		}
-		
-		if (controller.get_digital(DIGITAL_UP)) {
-			flywheel_angle = 50;
-			pros::lcd::set_text(0, "15");
-		} else if (controller.get_digital(DIGITAL_DOWN)) {
-			pros::lcd::set_text(1, "-15");
-			flywheel_angle = -50;
-		} else {
-			flywheel_angle.brake();
-		}
 
 		/**
-		 * When A is pressed starts a timer of 5 iterations until piston retracts
+		 * When A is pressed starts a timer of 8 iterations until piston retracts
 		 * Piston expands if timer value is positive
-	prospros	 * otherwise piston retracts
+         * otherwise piston retracts
 		 */
 		if (controller.get_digital_new_press(DIGITAL_A)) 
 			indexing_flag = 8;
@@ -377,24 +422,12 @@ void opcontrol() {
 		indexing_flag -= 1;
 		
 		// Debugging prints for flywheel
-		pros::lcd::set_text(2, "angle: " + std::to_string((flywheel_angle.get_position())));
-		pros::lcd::set_text(3, "speed: " + std::to_string(flywheel.get_actual_velocity()));
-
-		// Allows flywheel speed to be increased and decresed
-		if (controller.get_digital_new_press(DIGITAL_LEFT)) 
-			flywheel_v += -1;
-		if (controller.get_digital_new_press(DIGITAL_RIGHT))
-			flywheel_v += 1;
-		if (flywheel_v > 200) 
-			flywheel_v = 200;
-		if (flywheel_v < -200)
-			flywheel_v = -200;
+		pros::lcd::set_text(0, "angle: " + std::to_string((flywheel_potentiometer.get_angle())));
+		pros::lcd::set_text(1, "speed: " + std::to_string(flywheel.get_actual_velocity()));
 		
-		flywheel = flywheel_v;
-
-		if (controller.get_digital_new_press(DIGITAL_Y))
-			flywheel_v = 200;
-		
+        // Allow user to manually adjust flywheel speed
+		if (controller.get_digital(DIGITAL_LEFT)) flywheel_offset -= 1;
+        if (controller.get_digital_new_press(DIGITAL_RIGHT)) flywheel_offset += 1;
 
 		/** 
          * Arcade Controls 
