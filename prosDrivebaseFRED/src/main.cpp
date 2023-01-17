@@ -10,7 +10,7 @@
 #define LEFT_MTR1_PORT 1
 #define LEFT_MTR2_PORT 2
 #define LEFT_MTR3_PORT 3
-#define LEFT_MTR4_PORT 4
+#define LEFT_MTR4_PORT 14
 #define RIGHT_MTR1_PORT 8
 #define RIGHT_MTR2_PORT 9
 #define RIGHT_MTR3_PORT 10
@@ -23,7 +23,7 @@
 #define CATAPULT_MAX 600
 #define LAUNCHER_PORT 'g'
 #define GYRO_PORT 13
-#define VISION_PORT 18
+#define VISION_PORT 19
 enum intakeDirection { intake, outtake, stopped };
 intakeDirection intakeState = stopped;
 
@@ -192,20 +192,13 @@ void drive(int power, float distance){
 void turn(turnType dir, int32_t deg) {
  tareMotors();
  float initialValue = gyro.get_rotation();
-  if (deg > 0) {
-	deg -= 8;
-  }
-  else {
-	deg += 8;
-  }
   float error = deg;
-  // Accounts for unknown error in turn
   float prevError = deg;
   float totalError = 0;
-  const float threshold = .25;
-  const float kp = 1.35;
-  const float ki = .7;
-  const float kd = .9;
+  const float threshold = 1;
+  const float kp = 1.4;
+  const float ki = .3;
+  const float kd = .8;
   std::string first = std::to_string(gyro.get_rotation());
   pros::lcd::set_text(4, "Gyro Value: " + first);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
@@ -228,18 +221,14 @@ void turn(turnType dir, int32_t deg) {
     totalError += (fabs(error) < 10 ? error : 0);
   }
   pros::lcd::set_text(7, "I'm out of PID");
-  	left_mtr1.move(0);
-	left_mtr2.move(0);
-    left_mtr3.move(0);
-    right_mtr1.move(0);
-    right_mtr2.move(0);
-    right_mtr3.move(0);
 	right_mtr1.brake();
 	right_mtr2.brake();
 	right_mtr3.brake();
+	right_mtr4.brake();
 	left_mtr1.brake();
 	left_mtr2.brake();
 	left_mtr3.brake();
+	left_mtr4.brake();
 }
 
 void runRoller(){
@@ -327,8 +316,9 @@ void shoot(){
 void autonomous() {
 	
 	// For testing turn
-	// turn(right, -88);
+	// turn(right, 90);
 	// pros::delay(3000);
+	// drive(50, 70);
 	// turn(right, 180);
 	// pros::delay(3000);
 	// turn(right, -90);
@@ -343,25 +333,29 @@ void autonomous() {
 	pros::delay(200);
 	runRoller();
 	pros::delay(200);
-	drive(30, 6);
+	drive(20, 5);
 	pros::delay(200);
-	turn(right, -90);
+	turn(right, -89);
+	Intake_1 = 127;
+	Intake_2 = 127;
 	pros::delay(200);
 	drive(50, -110);
 	pros::delay(200);
-	drive(30, 6);
+	drive(30, 7.5);
 	pros::delay(200);
 	turn(right, -90);
 	pros::delay(200);
-	drive(50, 4);
+	drive(20, 6);
+	pros::delay(400);
+	drive(50, -99);
 	pros::delay(200);
-	drive(50, -98);
-	pros::delay(200);
+	Intake_1 = 0;
+	Intake_2 = 0;
 	turn(right, 90);
 	pros::delay(200);
-	drive(20, -15);
+	drive(40, -15);
 	pros::delay(200);
-	drive(40, 1);
+	drive(40, 2);
 	pros::delay(200);
 	runRoller();
 	pros::delay(200);
