@@ -309,7 +309,7 @@
       }
     },
     "upload_options": {
-      "after": "run"
+      "after": "screen"
     }
   }
 }
