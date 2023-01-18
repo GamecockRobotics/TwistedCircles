@@ -128,12 +128,12 @@ int odometry() {
 
 		// Stores current sensor values to previous variables for use in next iteration
 		prev_track_forward = track_forward;
-		prev_track_side = track_side;
+		prev_track_side = track_side; 
 
 		// Delay so that other tasks can run
 		pros::delay(10);
 
-		pros::lcd::set_text(0, "x: " + std::to_string(x_loc - goal_x) + " y: " + std::to_string(y_loc - goal_y));
+		pros::lcd::set_text(0, "x: " + std::to_string(x_loc) + " y: " + std::to_string(y_loc));
 		pros::lcd::set_text(1, "theta: " + std::to_string(theta));
 	}
 	return 0;
@@ -235,6 +235,10 @@ int drive () {
  */
 double get_distance(double x0, double y0, double x1, double y1) {
 	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1)) * ((x0 < x1 || (x0 == x1 &&y0<y1)) ? -1 : 1);
+}
+
+double get_distance_drive_forward(double x0, double y0, double x1, double y1) {
+	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
 }
 
 /**
@@ -441,9 +445,10 @@ void drive_forward(int distance) {
 	const double kai = .05;
 	// PID control loop
 	while (fabs(dist_error) > threshold || fabs(prev_dist_error) > threshold || abs(left_target) > 15 || abs(right_target) > 15) {
+		pros::lcd::set_text(6, "I'm in pid");
 		prev_dist_error = dist_error;
 
-		dist_error = get_distance(x_loc, y_loc, target_x, target_y);
+		dist_error = get_distance_drive_forward(x_loc, y_loc, target_x, target_y);
 
 		pros::lcd::set_text(7, "error: " + std::to_string(dist_error));
 		
@@ -454,6 +459,7 @@ void drive_forward(int distance) {
 		right_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error;
 		pros::delay(10);
 	}
+	pros::lcd::set_text(6, "I'm out of pid");
 	// Zero out motors so the robot does not continue moving
 	left_target = 0;
 	right_target = 0;
@@ -502,7 +508,7 @@ void shoot(int speed, int count) {
  * from where it left off.
  */
 void autonomous() {
-	drive_forward(-24*inch_to_mm);
+	drive_forward(24*inch_to_mm);
 	turn_to_goal();
 	shoot(200, 2);
 
@@ -605,7 +611,7 @@ void opcontrol() {
 		// right_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
 		
 	
-		// Turn to goal when A pressed on the controller
+		// Turn to goal when X pressed on the controller
 		if (controller.get_digital(DIGITAL_X)) {
 			turn_to_goal();
 		}
