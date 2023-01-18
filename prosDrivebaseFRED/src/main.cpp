@@ -196,9 +196,9 @@ void turn(turnType dir, int32_t deg) {
   float prevError = deg;
   float totalError = 0;
   const float threshold = 1;
-  const float kp = 1.4;
-  const float ki = .3;
-  const float kd = .8;
+  const float kp = 2.2; //was 1.4
+  const float ki = .4; //was .3
+  const float kd = .7; //was .8
   std::string first = std::to_string(gyro.get_rotation());
   pros::lcd::set_text(4, "Gyro Value: " + first);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
@@ -218,7 +218,7 @@ void turn(turnType dir, int32_t deg) {
     error = deg - (gyro.get_rotation() - initialValue);
 	std::string errorInWhile = std::to_string(error);
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
-    totalError += (fabs(error) < 10 ? error : 0);
+    totalError += (fabs(error) < 5 ? error : 0); // was 10
   }
   pros::lcd::set_text(7, "I'm out of PID");
 	right_mtr1.brake();
@@ -316,7 +316,7 @@ void shoot(){
 void autonomous() {
 	
 	// For testing turn
-	// turn(right, 90);
+	//turn(right, 90);
 	// pros::delay(3000);
 	// drive(50, 70);
 	// turn(right, 180);
