@@ -439,7 +439,7 @@ void drive_forward(int distance) {
 	// accumulate total error to correct for it
 	double total_dist_error = 0, total_theta_error = 0;
 	// The precision in degrees required to exit the loop
-	const double threshold = 10;
+	const double threshold = 15;
 	// The constants tuned for PID
 	const double kp = .4, ki = 0.001, kd = .5;
 	const double kai = .05;
@@ -449,6 +449,14 @@ void drive_forward(int distance) {
 		prev_dist_error = dist_error;
 
 		dist_error = get_distance_drive_forward(x_loc, y_loc, target_x, target_y);
+
+		if (fabs(target_x - x_loc) > 5 && x_loc < target_x) {
+			dist_error *= -1;
+		}		
+		if (fabs(target_y - y_loc) > 5 && y_loc < target_y) {
+			dist_error *= -1;
+		}
+
 
 		pros::lcd::set_text(7, "error: " + std::to_string(dist_error));
 		
@@ -480,6 +488,7 @@ void shoot(int speed, int count) {
 	indexer.set_value(true);
 	pros::delay(100);
 	indexer.set_value(false);
+	pros::delay(300);
 
 	// For any following shots
 	for (; count > 1; count--) {
@@ -491,6 +500,7 @@ void shoot(int speed, int count) {
 		indexer.set_value(true);
 		pros::delay(100);
 		indexer.set_value(false);
+	pros::delay(300);
 	}
 	// make sure flywheel ends at speed passed into the function
 	flywheel_target = speed;
@@ -510,7 +520,7 @@ void shoot(int speed, int count) {
 void autonomous() {
 	drive_forward(24*inch_to_mm);
 	turn_to_goal();
-	shoot(200, 2);
+	shoot(190, 2);
 
 }
 
@@ -593,10 +603,10 @@ void opcontrol() {
          * Increases and reduces power of left and right sides of the chassis based on the horizontal
          * value of the left joystick. Respectively turns chassis left and right based on value.
          */ 
-		power = controller.get_analog(ANALOG_LEFT_Y); 
-		turn = controller.get_analog(ANALOG_LEFT_X); 
-		right_target = power + turn; 
-		left_target = power - turn; 
+		// power = controller.get_analog(ANALOG_LEFT_Y); 
+		// turn = controller.get_analog(ANALOG_LEFT_X); 
+		// right_target = power + turn; 
+		// left_target = power - turn; 
  
 		/** 
          * Base Tank Controls 
@@ -607,8 +617,8 @@ void opcontrol() {
          * Joystick has a small deadzone to prevent accidental movements when 
          * the joysticks are not perfectly centered
          */ 
-		// left_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
-		// right_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
+		left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
+		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
 		
 	
 		// Turn to goal when X pressed on the controller
