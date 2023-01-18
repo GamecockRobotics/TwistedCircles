@@ -8,6 +8,7 @@
 #include "pros/rtos.hpp"
 #include <cctype>
 #include <cmath>
+#include <cstddef>
 #include <string>
 #include <sys/errno.h>
 #include <type_traits>
@@ -55,7 +56,7 @@ static constexpr double track_wheel_size = 0.00609556241;
 // Distance from back tracking wheel to center of robot
 static constexpr double back_track_offset = 150;
 // The angle the robot is facing
-static constexpr double start_theta = 0;
+static constexpr double start_theta = -90;
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -63,15 +64,15 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 3467, y_loc = 1524;
+double x_loc = 1378, y_loc = 3480;
 // Variable to keep track of the Orientation of the Robot
-double theta = 0;
+double theta;
 
 // Variables to store the target speed for each side of the chassis
 int left_target = 0, right_target = 0;
 
-// allow user to adjust flywheel speed as necessary
-int flywheel_offset = 0;
+// variable to store the target speed
+int flywheel_target;
 
 
 // Define Controller
@@ -131,6 +132,9 @@ int odometry() {
 
 		// Delay so that other tasks can run
 		pros::delay(10);
+
+		pros::lcd::set_text(0, "x: " + std::to_string(x_loc - goal_x) + " y: " + std::to_string(y_loc - goal_y));
+		pros::lcd::set_text(1, "theta: " + std::to_string(theta));
 	}
 	return 0;
 }
@@ -247,8 +251,6 @@ double get_goal_distance() {
  * Task to control flywheel speed using take back half algorithm
  */
 int flywheel_task () {
-	// variable to store the target speed
-	int flywheel_target;
 	// take back half constant for getting close to desired speed
 	int tbh = 6000;
 	// the difference between the desired and actual speed
@@ -269,10 +271,6 @@ int flywheel_task () {
 		else 
 			flywheel_angle.brake();
 
-		// Calculate flywheel speed based on position and angle
-		flywheel_target = 0.024866 * get_goal_distance() + 3.172274 * flywheel_potentiometer.get_angle() + -193.229168 +flywheel_offset;
-
-
 		// calculate differencec in desired speed
 		error = flywheel_target - flywheel.get_actual_velocity();
 
@@ -287,6 +285,8 @@ int flywheel_task () {
 
 		// Prevent exceeding maximum voltage to not cause errors in calculations
 		if (output > 12000) output = 12000;
+
+		pros::lcd::set_text(5, "flywheel: " + std::to_string(flywheel.get_actual_velocity()));
 
 		// Set Flywheel speed to calculated value
 		flywheel.move_voltage(output);
@@ -333,12 +333,15 @@ void turn( double deg) {
 
 	// the difference between the desired position and the current distance
 	double error = deg, prev_error;
-	// accumulate total error to correct for it
-	double total_error = 0;
+	// accumulate total error to correct for it, 
+	// If the error is really small, start with a larger total error because kp will not do enough
+	double total_error = fabs(deg) < 10 ? deg*50 : 0;
 	// The precision in degrees required to exit the loop
-	const double threshold = .25;
+	const double threshold = 1;
 	// The constants tuned for PID
 	const double kp = 2.25, ki = 0.05, kd = 2;
+
+	
 	// PID control loop
 	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
 		prev_error = error;
@@ -348,10 +351,22 @@ void turn( double deg) {
 		left_target = -kp * error - kd * (error - prev_error) - ki * total_error;
 		right_target = kp * error + kd * (error - prev_error) + ki * total_error;
 		pros::delay(10);
+		if (controller.get_digital(DIGITAL_B))
+			break;
 	}
 	// Zero out motors so the robot does not continue moving
 	left_target = 0;
 	right_target = 0;
+}
+
+/**
+ * Turns to face specific orientation
+ * Function is Blocking
+ *
+ * @param angle the angle that the robot should turn to
+ */
+void turn_to_angle(double angle) {
+	turn(fmod(fmod(fmod(fmod(theta, 360)+360,360) - angle,180)+180,180));
 }
 
 /**
@@ -364,13 +379,21 @@ void turn_to_goal() {
 	// Difference in x values between the robot and goal in mm
 	double x = x_loc - goal_x;
 
+	pros::lcd::set_text(3, "angle to face: " + std::to_string(atan(y/x)));
+	pros::lcd::set_text(4, "angle to face: " + std::to_string(atan(y/x)*radian_to_degree));
+
 	// Heading between -180 and 180 for the direction that the robot needs to be facing at the given
 	// point to be facing the goal
-	double target_heading = fmod(((x > 0 ? pi2 : 3*pi) - atan(y/x)),pi2)*degree_to_radian-180;
+	double target_theta = fmod(((x > 0 ? 0 : pi) - atan((y_loc - goal_y)/(x_loc - goal_x))),2*pi)*radian_to_degree - fmod(theta, 360);
 
-	double target_theta = target_heading;
+	turn(fmod(target_theta, 360));
+
+	// Theoretically correct though untested
+	// turn_to_angle(((x > 0 ? 0 : pi) - atan((y_loc - goal_y)/(x_loc - goal_x))));
 
 }
+
+
 
 
 /**
@@ -399,9 +422,12 @@ void competition_initialize() {}
  */
 void drive_forward(int distance) {
 	// Get initial position 
-	const int target_x = x_loc + distance*cos(theta);
-	const int target_y = y_loc + distance*sin(theta);
+	const int target_x = x_loc + distance*cos(theta*degree_to_radian);
+	const int target_y = y_loc + distance*sin(theta*degree_to_radian);
 	const double target_theta = gyro.get_rotation();
+
+	pros::lcd::set_text(3, "X " + std::to_string(x_loc) + " target " + std::to_string(target_x));
+	pros::lcd::set_text(4, "Y " + std::to_string(y_loc) + " target " + std::to_string(target_y));
 
 	// the difference between the desired position and the current distance
 	double dist_error = distance;
@@ -419,13 +445,13 @@ void drive_forward(int distance) {
 
 		dist_error = get_distance(x_loc, y_loc, target_x, target_y);
 
-		pros::lcd::set_text(0, "error: " + std::to_string(dist_error));
+		pros::lcd::set_text(7, "error: " + std::to_string(dist_error));
 		
 		total_dist_error += (fabs(dist_error) < 50 ? dist_error : 0);
 		total_theta_error += target_theta - gyro.get_rotation();
 		
-		left_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error - kai*total_theta_error;
-		right_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error + kai*total_theta_error;
+		left_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error;
+		right_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error;
 		pros::delay(10);
 	}
 	// Zero out motors so the robot does not continue moving
@@ -433,25 +459,43 @@ void drive_forward(int distance) {
 	right_target = 0;
 }
 
-
-
 /**
- * we want to use pid to control the left speed and right speed and control 
- * the angle to make sure one side does not pull ahead of the other
- *
- * It might be easiest to just calculate the final position and heading 
- * drive to the position using any means necessary than correct for heading if necessary
- *
- *
- * Given current position and heading 
+ * Shoot the flywheel at the given speed a certain number of times
+ * 
+ * @param speed the speed the flywheel should shoot at
+ * @param count the number of times the robot should shoot at that speed
  */
+void shoot(int speed, int count) {
+	// Set flywheel target to desired speed
+	flywheel_target = speed;
+	// Wait until flywheel is at desired speed
+	while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
+	// Shoot
+	indexer.set_value(true);
+	pros::delay(100);
+	indexer.set_value(false);
+
+	// For any following shots
+	for (; count > 1; count--) {
+		// Set flywheel to maximum speed
+		flywheel_target = 220;
+		// Wait until flywheel reaches desired speed
+		while (flywheel.get_actual_velocity() < speed) { pros::delay(10); }
+		// shoot
+		indexer.set_value(true);
+		pros::delay(100);
+		indexer.set_value(false);
+	}
+	// make sure flywheel ends at speed passed into the function
+	flywheel_target = speed;
+}
 
 /**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
  * the Field Management System or the VEX Competition Switch in the autonomous
  * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
+ * for non-competitiofn testing purposes.
  *
  * If the robot is disabled or communications is lost, the autonomous task
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
@@ -459,7 +503,9 @@ void drive_forward(int distance) {
  */
 void autonomous() {
 	drive_forward(-24*inch_to_mm);
-	flywheel = 50;
+	turn_to_goal();
+	shoot(200, 2);
+
 }
 
 
@@ -479,6 +525,8 @@ void autonomous() {
 void opcontrol() {
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
+	// variable to speed up or slow down flywheel based on user needs
+	int flywheel_offset = 0;
 	// Variables to calculate chassis speed when using arcade drive
 	int power, turn;
 	// Main Control Loop
@@ -505,9 +553,19 @@ void opcontrol() {
 		// pros::lcd::set_text(0, "angle: " + std::to_string((flywheel_potentiometer.get_angle())));
 		// pros::lcd::set_text(1, "speed: " + std::to_string(flywheel.get_actual_velocity()));
 		
+
+
         // Allow user to manually adjust flywheel speed
-		if (controller.get_digital(DIGITAL_LEFT)) flywheel_offset -= 1;
-        if (controller.get_digital_new_press(DIGITAL_RIGHT)) flywheel_offset += 1;
+		if (controller.get_digital_new_press(DIGITAL_LEFT)) { 
+			flywheel_offset -= 1;
+		}
+        if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
+			flywheel_offset += 1;
+		}
+
+		// Calculate flywheel speed based on position and angle
+		flywheel_target = 0.024866 * get_goal_distance() + 3.172274 * flywheel_potentiometer.get_angle() + -193.229168 +flywheel_offset;
+		
 		
 		// Roller code
 
@@ -551,6 +609,9 @@ void opcontrol() {
 		if (controller.get_digital(DIGITAL_X)) {
 			turn_to_goal();
 		}
+
+
+		
 
 		// Delay so other processes can run
 		pros::delay(10);
