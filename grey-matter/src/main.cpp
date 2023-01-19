@@ -75,7 +75,6 @@ int left_target = 0, right_target = 0;
 int flywheel_target;
 
 
-bool pid = true;
 
 // Define Controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -166,7 +165,7 @@ int drive () {
 	// The maximum slew rate; variable based on direction robot is traveling to prevent tipping
 	int slew;
 	// Main control loop
-	while (pid) {
+	while (true) {
 		// Set speed of left and right side of chassis based on tank drive controls 
 		speed_l = left_target*210/127;
 		speed_r = right_target*210/127;
@@ -438,6 +437,8 @@ void competition_initialize() {}
  * @param distance the distance to travel in mm
  */
 void drive_forward(int distance) {
+	int count = 0;
+
 	// Get initial position 
 	const int target_x = x_loc + distance*cos(theta*degree_to_radian);
 	const int target_y = y_loc + distance*sin(theta*degree_to_radian);
@@ -457,7 +458,8 @@ void drive_forward(int distance) {
 	const double kp = .4, ki = 0.001, kd = .5;
 	const double kai = .05;
 	// PID control loop
-	while (fabs(dist_error) > threshold || fabs(prev_dist_error) > threshold || abs(left_target) > 15 || abs(right_target) > 15) {
+	while ((fabs(dist_error) > threshold || fabs(prev_dist_error) > threshold || abs(left_target) > 15 || abs(right_target) > 15) && count < 600) {
+		count ++;
 		pros::lcd::set_text(6, "I'm in pid");
 		prev_dist_error = dist_error;
 
@@ -552,8 +554,6 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	// turn off pid control with slew
-	pid = true;
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
 	// variable to speed up or slow down flywheel based on user needs
