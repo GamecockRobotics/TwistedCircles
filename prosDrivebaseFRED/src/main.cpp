@@ -355,8 +355,8 @@ void autonomous() {
 	// turn(right, -180);
 	// pros::delay(3000);
 	
-	shoot();
-	pros::delay(1000);
+	//shoot();
+	//pros::delay(1000);
 	turn(right, 5);
 	pros::delay(200);
 	pros::lcd::set_text(2, "auton started");
