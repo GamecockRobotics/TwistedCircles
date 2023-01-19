@@ -268,9 +268,11 @@ void runRoller(){
 	left_mtr1 = 0;
 	left_mtr2 = 0;
 	left_mtr3 = 0;
+	left_mtr4 = 0;
 	right_mtr1 = 0;
 	right_mtr2 = 0;
 	right_mtr3 = 0;
+	right_mtr4 = 0;
 	vision.set_led_pwm(0);
 }
 
