@@ -251,7 +251,7 @@ double get_goal_distance() {
 	return get_distance(x_loc, y_loc, goal_x, goal_y);
 }
 
-
+bool up = false;
 /**
  * Task to control flywheel speed using take back half algorithm
  */
@@ -280,7 +280,7 @@ int flywheel_task () {
 		if (controller.get_digital(DIGITAL_DOWN)) {
 			flywheel_angle = -50;
 		}
-		else if (controller.get_digital(DIGITAL_UP)) {
+		else if (controller.get_digital(DIGITAL_UP) || up) {
 			flywheel_angle = 50;
 		}
 		else {
@@ -497,28 +497,21 @@ void drive_forward(int distance) {
 void shoot(int speed, int count) {
 	// Set flywheel target to desired speed
 	flywheel_target = speed;
+	up = true;
 	// Wait until flywheel is at desired speed
-	while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
-	// Shoot
-	indexer.set_value(true);
-	pros::delay(100);
-	indexer.set_value(false);
-	pros::delay(300);
-
-	// For any following shots
-	for (; count > 1; count--) {
-		// Set flywheel to maximum speed
-		flywheel_target = 220;
-		// Wait until flywheel reaches desired speed
-		while (flywheel.get_actual_velocity() < speed) { pros::delay(10); }
-		// shoot
+	for (; count > 0; count--) {
+		while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
+		up = false;
+		// Shoot
 		indexer.set_value(true);
 		pros::delay(100);
 		indexer.set_value(false);
-	pros::delay(300);
+		pros::delay(300);
 	}
-	// make sure flywheel ends at speed passed into the function
-	flywheel_target = speed;
+
+	
+	pros::delay(300);
+
 }
 
 /**
@@ -535,7 +528,7 @@ void shoot(int speed, int count) {
 void autonomous() {
 	drive_forward(24*inch_to_mm);
 	turn_to_goal();
-	shoot(190, 2);
+	shoot(210, 2);
 
 }
 
