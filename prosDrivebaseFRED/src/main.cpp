@@ -55,7 +55,7 @@ enum color{red, blue};
 
 	bool launcherState = true;
 	int cataFlagAuto = 1;
-
+	int cataFlag = 0;
 /**
  * A callback function for LLEMU's center button.
  *
@@ -120,6 +120,19 @@ void initialize() {
 	// 		pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
 	// 	}
 	// }
+
+	// if (!SlipGearSensor.get_value()) {
+	// 		cataFlag = 1;
+	// 		left_catapult.move_velocity(600);
+	// 		right_catapult.move_velocity(600);
+	// 		pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+	// 	} else if (SlipGearSensor.get_value()) {
+	// 		cataFlag = 0;
+	// 		//intakeLock = 0;
+	// 		left_catapult.brake();
+	// 		right_catapult.brake();
+	// 		pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+	// 	}
 		
 }
 
@@ -128,7 +141,20 @@ void initialize() {
  * the VEX Competition Switch, following either autonomous or opcontrol. When
  * the robot is enabled, this task will exit.
  */
-void disabled() {}
+void disabled() {
+	// if (!SlipGearSensor.get_value()) {
+	// 		cataFlag = 1;
+	// 		left_catapult.move_velocity(600);
+	// 		right_catapult.move_velocity(600);
+	// 		pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+	// 	} else if (SlipGearSensor.get_value()) {
+	// 		cataFlag = 0;
+	// 		//intakeLock = 0;
+	// 		left_catapult.brake();
+	// 		right_catapult.brake();
+	// 		pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+	// 	}
+}
 
 /**
  * Runs after initialize(), and before autonomous when connected to the Field
@@ -293,25 +319,26 @@ void runIntake(direction dir, float dis){
 void shoot(){
 	left_catapult.move_velocity(600);
 	right_catapult.move_velocity(600);
-	cataFlagAuto = 0;
+	// cataFlag = 1;
 
-	pros::delay(300);
-	while(cataFlagAuto == 1){
-		if (!SlipGearSensor.get_value()) {
-			cataFlagAuto = 1;
-			left_catapult.move_velocity(600);
-			right_catapult.move_velocity(600);
-			pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-			
-		}
-		else if (SlipGearSensor.get_value()) {
-			cataFlagAuto = 0;
-			left_catapult.brake();
-			right_catapult.brake();
-			pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
-		}
-	}
-	
+	// pros::delay(300);
+	// while(cataFlag == 1){
+	// 	if (!SlipGearSensor.get_value()) {
+	// 		cataFlag = 1;
+	// 		left_catapult.move_velocity(600);
+	// 		right_catapult.move_velocity(600);
+	// 		pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+	// 	} else if (SlipGearSensor.get_value()) {
+	// 		cataFlag = 0;
+	// 		//intakeLock = 0;
+	// 		left_catapult.brake();
+	// 		right_catapult.brake();
+	// 		pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
+	// 	}
+	// }
+	pros::delay(1500);
+	left_catapult.brake();
+	right_catapult.brake();
 
 }
 
@@ -327,8 +354,11 @@ void autonomous() {
 	// pros::delay(3000);
 	// turn(right, -180);
 	// pros::delay(3000);
+	
 	shoot();
-	turn(left, 20);
+	pros::delay(1000);
+	turn(right, 5);
+	pros::delay(200);
 	pros::lcd::set_text(2, "auton started");
 	drive(20, -15);
 	pros::delay(200);
@@ -420,7 +450,7 @@ int driveTask(){
 }
 
 void opcontrol() {
-	int cataFlag = 0;
+	
 	int intakeLock = 0;
 	int i = 0;
 	std::string buttonNum;
