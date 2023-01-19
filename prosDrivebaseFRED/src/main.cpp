@@ -202,7 +202,7 @@ void drive(int power, float distance){
 	right_mtr3.move_absolute(distance*13.37*2.5, power);
 	right_mtr4.move_absolute(distance*13.37*2.5, power);
 	pros::lcd::set_text(3, "driving");
-	pros::delay(250);
+	pros::delay(1000);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
 	while (!(left_mtr1.get_actual_velocity() == 0)) {
         pros::delay(2);
@@ -380,10 +380,27 @@ void autonomous() {
 	// turn(right, 6);
 	// pros::delay(200);
 	pros::lcd::set_text(2, "auton started");
-	drive(20, -15);
+	// drive(20, -15);
+	left_mtr1 = 40;
+	left_mtr2 = 40;
+	left_mtr3 = 40;
+	left_mtr4 = 40;
+	right_mtr1 = 40;
+	right_mtr2 = 40;
+	right_mtr3 = 40;
+	right_mtr4 = 40;
 	pros::delay(200);
-	drive(40, 2);
+	left_mtr1 = 0;
+	left_mtr2 = 0;
+	left_mtr3 = 0;
+	left_mtr4 = 0;
+	right_mtr1 = 0;
+	right_mtr2 = 0;
+	right_mtr3 = 0;
+	right_mtr4 = 0;
 	pros::delay(200);
+	// drive(40, 2);
+	// pros::delay(200);
 	runRoller();
 	pros::delay(200);
 	drive(20, 5);
