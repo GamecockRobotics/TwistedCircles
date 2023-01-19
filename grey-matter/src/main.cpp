@@ -128,12 +128,12 @@ int odometry() {
 
 		// Stores current sensor values to previous variables for use in next iteration
 		prev_track_forward = track_forward;
-		prev_track_side = track_side;
+		prev_track_side = track_side; 
 
 		// Delay so that other tasks can run
 		pros::delay(10);
 
-		pros::lcd::set_text(0, "x: " + std::to_string(x_loc - goal_x) + " y: " + std::to_string(y_loc - goal_y));
+		pros::lcd::set_text(0, "x: " + std::to_string(x_loc) + " y: " + std::to_string(y_loc));
 		pros::lcd::set_text(1, "theta: " + std::to_string(theta));
 	}
 	return 0;
@@ -235,6 +235,10 @@ int drive () {
  */
 double get_distance(double x0, double y0, double x1, double y1) {
 	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1)) * ((x0 < x1 || (x0 == x1 &&y0<y1)) ? -1 : 1);
+}
+
+double get_distance_drive_forward(double x0, double y0, double x1, double y1) {
+	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
 }
 
 /**
@@ -435,15 +439,24 @@ void drive_forward(int distance) {
 	// accumulate total error to correct for it
 	double total_dist_error = 0, total_theta_error = 0;
 	// The precision in degrees required to exit the loop
-	const double threshold = 10;
+	const double threshold = 15;
 	// The constants tuned for PID
 	const double kp = .4, ki = 0.001, kd = .5;
 	const double kai = .05;
 	// PID control loop
 	while (fabs(dist_error) > threshold || fabs(prev_dist_error) > threshold || abs(left_target) > 15 || abs(right_target) > 15) {
+		pros::lcd::set_text(6, "I'm in pid");
 		prev_dist_error = dist_error;
 
-		dist_error = get_distance(x_loc, y_loc, target_x, target_y);
+		dist_error = get_distance_drive_forward(x_loc, y_loc, target_x, target_y);
+
+		if (fabs(target_x - x_loc) > 5 && x_loc < target_x) {
+			dist_error *= -1;
+		}		
+		if (fabs(target_y - y_loc) > 5 && y_loc < target_y) {
+			dist_error *= -1;
+		}
+
 
 		pros::lcd::set_text(7, "error: " + std::to_string(dist_error));
 		
@@ -454,6 +467,7 @@ void drive_forward(int distance) {
 		right_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error;
 		pros::delay(10);
 	}
+	pros::lcd::set_text(6, "I'm out of pid");
 	// Zero out motors so the robot does not continue moving
 	left_target = 0;
 	right_target = 0;
@@ -474,6 +488,7 @@ void shoot(int speed, int count) {
 	indexer.set_value(true);
 	pros::delay(100);
 	indexer.set_value(false);
+	pros::delay(300);
 
 	// For any following shots
 	for (; count > 1; count--) {
@@ -485,6 +500,7 @@ void shoot(int speed, int count) {
 		indexer.set_value(true);
 		pros::delay(100);
 		indexer.set_value(false);
+	pros::delay(300);
 	}
 	// make sure flywheel ends at speed passed into the function
 	flywheel_target = speed;
@@ -502,9 +518,9 @@ void shoot(int speed, int count) {
  * from where it left off.
  */
 void autonomous() {
-	drive_forward(-24*inch_to_mm);
+	drive_forward(24*inch_to_mm);
 	turn_to_goal();
-	shoot(200, 2);
+	shoot(190, 2);
 
 }
 
@@ -587,10 +603,10 @@ void opcontrol() {
          * Increases and reduces power of left and right sides of the chassis based on the horizontal
          * value of the left joystick. Respectively turns chassis left and right based on value.
          */ 
-		power = controller.get_analog(ANALOG_LEFT_Y); 
-		turn = controller.get_analog(ANALOG_LEFT_X); 
-		right_target = power + turn; 
-		left_target = power - turn; 
+		// power = controller.get_analog(ANALOG_LEFT_Y); 
+		// turn = controller.get_analog(ANALOG_LEFT_X); 
+		// right_target = power + turn; 
+		// left_target = power - turn; 
  
 		/** 
          * Base Tank Controls 
@@ -601,11 +617,11 @@ void opcontrol() {
          * Joystick has a small deadzone to prevent accidental movements when 
          * the joysticks are not perfectly centered
          */ 
-		// left_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
-		// right_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
+		left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
+		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
 		
 	
-		// Turn to goal when A pressed on the controller
+		// Turn to goal when X pressed on the controller
 		if (controller.get_digital(DIGITAL_X)) {
 			turn_to_goal();
 		}
