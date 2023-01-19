@@ -200,7 +200,7 @@ int drive () {
 
 
 		// Move actual voltage towards target voltage by an increment no greater than the slew rate
-		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 300 :800;
+		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 600 :1600;
 
 		if (abs(voltage_al - voltage_tl) <= slew) voltage_al = voltage_tl;
 		else voltage_al += std::signbit(voltage_al - voltage_tl) ? slew : -slew;
@@ -265,17 +265,28 @@ int flywheel_task () {
 	int output = 0;
 	// Control loop for flywheel
 	while (true) {
-		// Move the angle up while intaking 
-		if (intake.get_actual_velocity() > 50) {
-			if (flywheel_potentiometer.get_angle() < 103) 
-				flywheel_angle.brake();
-			else
-				flywheel_angle = 50;
-		// Move the angle down on the down button press
-		} else if (controller.get_digital(DIGITAL_DOWN))
+		// // Move the angle up while intaking 
+		// if (intake.get_actual_velocity() > 50) {
+		// 	if (flywheel_potentiometer.get_angle() < 103) 
+		// 		flywheel_angle.brake();
+		// 	else
+		// 		flywheel_angle = 50;
+		// // Move the angle down on the down button press
+		// } else if (controller.get_digital(DIGITAL_DOWN))
+		// 	flywheel_angle = -50;
+		// else 
+		// 	flywheel_angle.brake();
+
+		// Move angle on manual control
+		if (controller.get_digital(DIGITAL_DOWN)) {
 			flywheel_angle = -50;
-		else 
+		}
+		else if (controller.get_digital(DIGITAL_UP)) {
+			flywheel_angle = 50;
+		}
+		else {
 			flywheel_angle.brake();
+		}
 
 		// calculate differencec in desired speed
 		error = flywheel_target - flywheel.get_actual_velocity();
@@ -520,7 +531,7 @@ void shoot(int speed, int count) {
  * from where it left off.
  */
 void autonomous() {
-	drive_forward(-24*inch_to_mm);
+	drive_forward(24*inch_to_mm);
 	turn_to_goal();
 	shoot(190, 2);
 
@@ -542,7 +553,7 @@ void autonomous() {
  */
 void opcontrol() {
 	// turn off pid control with slew
-	pid = false;
+	pid = true;
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
 	// variable to speed up or slow down flywheel based on user needs
@@ -576,12 +587,12 @@ void opcontrol() {
 
 
         // Allow user to manually adjust flywheel speed
-		if (controller.get_digital_new_press(DIGITAL_LEFT)) { 
-			flywheel_offset -= 1;
-		}
-        if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
-			flywheel_offset += 1;
-		}
+		// if (controller.get_digital_new_press(DIGITAL_LEFT)) { 
+		// 	flywheel_offset -= 1;
+		// }
+        // if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
+		// 	flywheel_offset += 1;
+		// }
 
 		// Calculate flywheel speed based on position and angle
 		flywheel_target = 0.024866 * get_goal_distance() + 3.172274 * flywheel_potentiometer.get_angle() + -193.229168 +flywheel_offset;
@@ -589,9 +600,9 @@ void opcontrol() {
 		
 		// Roller code
 
-		if (controller.get_digital(DIGITAL_UP)) {
+		if (controller.get_digital(DIGITAL_L1)) {
 			roller = 127;
-		} else if (controller.get_digital(DIGITAL_DOWN)) {
+		} else if (controller.get_digital(DIGITAL_L2)) {
 			roller = -127;
 		} else {
 			roller.brake();
@@ -621,22 +632,31 @@ void opcontrol() {
          * Joystick has a small deadzone to prevent accidental movements when 
          * the joysticks are not perfectly centered
          */ 
-		left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
-		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
+		left_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? -controller.get_analog(ANALOG_LEFT_Y) : 0; 
+		right_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? -controller.get_analog(ANALOG_RIGHT_Y) : 0; 
 		
 		// Non tilt correcting code
-		float leftPower = controller.get_analog(ANALOG_LEFT_Y);
-		float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
-		if (leftPower > 8) {
-			chassis_l1 = leftPower;
-			chassis_l2 = leftPower;
-			chassis_l3 = leftPower;
-		}
-		if (rightPower > 8) {
-			chassis_r1 = rightPower;
-			chassis_r2 = rightPower;
-			chassis_r3 = rightPower;
-		}
+		// float leftPower = controller.get_analog(ANALOG_LEFT_Y);
+		// float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
+		// if (fabs(leftPower) > 8) {
+		// 	chassis_l1 = -leftPower;
+		// 	chassis_l2 = -leftPower;
+		// 	chassis_l3 = -leftPower;
+		// } else {
+		// 	chassis_l1 = 0;
+		// 	chassis_l2 = 0;
+		// 	chassis_l3 = 0;
+		// }
+		// if (fabs(rightPower) > 8) {
+		// 	chassis_r1 = -rightPower;
+		// 	chassis_r2 = -rightPower;
+		// 	chassis_r3 = -rightPower;
+		// } else {
+		// 	chassis_r1 = 0;
+		// 	chassis_r2 = 0;
+		// 	chassis_r3 = 0;
+		// }
+
 
 		// Turn to goal when X pressed on the controller
 		if (controller.get_digital(DIGITAL_X)) {
