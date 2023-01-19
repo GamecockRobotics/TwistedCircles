@@ -55,7 +55,7 @@ enum color{red, blue};
 
 	bool launcherState = true;
 	int cataFlagAuto = 1;
-	int cataFlag = 0;
+	
 /**
  * A callback function for LLEMU's center button.
  *
@@ -213,6 +213,26 @@ void drive(int power, float distance){
 }
 	
 
+void newDrive(int power, float distance) {
+	
+	left_mtr1.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr2.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr3.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr4.move_absolute(distance*13.37*2.5 - 5, power);
+	right_mtr1.move_absolute(distance*13.37*2.5, power);
+	right_mtr2.move_absolute(distance*13.37*2.5, power);
+	right_mtr3.move_absolute(distance*13.37*2.5, power);
+	right_mtr4.move_absolute(distance*13.37*2.5, power);
+	pros::lcd::set_text(3, "driving");
+	pros::delay(250);
+    // Continue running this loop as long as the motor is not within +-5 units of its goal
+	while (!(left_mtr1.get_actual_velocity() == 0)) {
+        pros::delay(2);
+		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
+		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
+    }
+}
+
 
 
 void turn(turnType dir, int32_t deg) {
@@ -355,10 +375,10 @@ void autonomous() {
 	// turn(right, -180);
 	// pros::delay(3000);
 	
-	//shoot();
-	//pros::delay(1000);
-	turn(right, 5);
-	pros::delay(200);
+	// shoot();
+	// pros::delay(1000);
+	// turn(right, 6);
+	// pros::delay(200);
 	pros::lcd::set_text(2, "auton started");
 	drive(20, -15);
 	pros::delay(200);
@@ -372,7 +392,7 @@ void autonomous() {
 	Intake_1 = 127;
 	Intake_2 = 127;
 	pros::delay(200);
-	drive(50, -110);
+	newDrive(50, -110);
 	pros::delay(200);
 	drive(30, 7.5);
 	pros::delay(200);
@@ -450,7 +470,7 @@ int driveTask(){
 }
 
 void opcontrol() {
-	
+	int cataFlag = 0;
 	int intakeLock = 0;
 	int i = 0;
 	std::string buttonNum;
