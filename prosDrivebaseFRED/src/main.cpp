@@ -56,21 +56,7 @@ enum color{red, blue};
 	bool launcherState = true;
 	int cataFlagAuto = 1;
 	int cataFlag = 0;
-/**
- * A callback function for LLEMU's center button.
- *
- * When this callback is fired, it will toggle line 2 of the LCD text between
- * "I was pressed!" and nothing.
- */
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
-}
+
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -80,9 +66,7 @@ void on_center_button() {
  */
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
 
-	pros::lcd::register_btn1_cb(on_center_button);
 
 	pros::c::motor_tare_position(LEFT_CATAPULT_PORT);
 	pros::c::motor_tare_position(RIGHT_CATAPULT_PORT);
@@ -355,9 +339,9 @@ void autonomous() {
 	// turn(right, -180);
 	// pros::delay(3000);
 	
-	shoot();
-	pros::delay(1000);
-	turn(right, 5);
+	//shoot();
+	//pros::delay(1000);
+	//turn(right, 5);
 	pros::delay(200);
 	pros::lcd::set_text(2, "auton started");
 	drive(20, -15);

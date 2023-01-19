@@ -199,7 +199,7 @@ int drive () {
 
 
 		// Move actual voltage towards target voltage by an increment no greater than the slew rate
-		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 600 :1600;
+		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 300 :800;
 
 		if (abs(voltage_al - voltage_tl) <= slew) voltage_al = voltage_tl;
 		else voltage_al += std::signbit(voltage_al - voltage_tl) ? slew : -slew;
@@ -278,10 +278,10 @@ int flywheel_task () {
 
 		// Move angle on manual control
 		if (controller.get_digital(DIGITAL_DOWN)) {
-			flywheel_angle = -50;
+			flywheel_angle = -40;
 		}
-		else if (controller.get_digital(DIGITAL_UP) || up) {
-			flywheel_angle = 50;
+		else if (controller.get_digital(DIGITAL_UP) || (up)) {
+			flywheel_angle = 40;
 		}
 		else {
 			flywheel_angle.brake();
@@ -437,52 +437,32 @@ void competition_initialize() {}
  * @param distance the distance to travel in mm
  */
 void drive_forward(int distance) {
-	int count = 0;
 
 	// Get initial position 
-	const int target_x = x_loc + distance*cos(theta*degree_to_radian);
-	const int target_y = y_loc + distance*sin(theta*degree_to_radian);
-	const double target_theta = gyro.get_rotation();
-
-	pros::lcd::set_text(3, "X " + std::to_string(x_loc) + " target " + std::to_string(target_x));
-	pros::lcd::set_text(4, "Y " + std::to_string(y_loc) + " target " + std::to_string(target_y));
-
+	const int target = tracking_forward.get_position() + distance/track_wheel_size;
 	// the difference between the desired position and the current distance
-	double dist_error = distance;
-	double prev_dist_error;
+	double error = distance;
+	double prev_error;
 	// accumulate total error to correct for it
-	double total_dist_error = 0, total_theta_error = 0;
+	double total_error = 0;
 	// The precision in degrees required to exit the loop
 	const double threshold = 15;
 	// The constants tuned for PID
-	const double kp = .4, ki = 0.001, kd = .5;
-	const double kai = .05;
+	const double kp = .002, ki = 0.005, kd = .000000001;
 	// PID control loop
-	while ((fabs(dist_error) > threshold || fabs(prev_dist_error) > threshold || abs(left_target) > 15 || abs(right_target) > 15) && count < 600) {
-		count ++;
-		pros::lcd::set_text(6, "I'm in pid");
-		prev_dist_error = dist_error;
+	while (error > 0) {
+		prev_error = error;
 
-		dist_error = get_distance_drive_forward(x_loc, y_loc, target_x, target_y);
-
-		if (fabs(target_x - x_loc) > 5 && x_loc < target_x) {
-			dist_error *= -1;
-		}		
-		if (fabs(target_y - y_loc) > 5 && y_loc < target_y) {
-			dist_error *= -1;
-		}
-
-
-		pros::lcd::set_text(7, "error: " + std::to_string(dist_error));
+		error = target - tracking_forward.get_position();
 		
-		total_dist_error += (fabs(dist_error) < 50 ? dist_error : 0);
-		total_theta_error += target_theta - gyro.get_rotation();
+		total_error += (fabs(error) < 5000 ? error : 0);
+
+		pros::lcd::set_text(2,std::to_string(error));
 		
-		left_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error;
-		right_target = kp * dist_error + kd * (dist_error - prev_dist_error) + ki * total_dist_error;
+		left_target = kp * error + kd * (error - prev_error) + ki * total_error;
+		right_target = left_target;
 		pros::delay(10);
 	}
-	pros::lcd::set_text(6, "I'm out of pid");
 	// Zero out motors so the robot does not continue moving
 	left_target = 0;
 	right_target = 0;
@@ -528,7 +508,7 @@ void shoot(int speed, int count) {
 void autonomous() {
 	drive_forward(24*inch_to_mm);
 	turn_to_goal();
-	shoot(210, 2);
+	shoot(200, 2);
 
 }
 
