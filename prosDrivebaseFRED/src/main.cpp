@@ -293,16 +293,16 @@ void runRoller(){
 
 	if ((vision.get_hue() > 300 || vision.get_hue() < 20 )) {
 		while ((vision.get_hue() > 300 || vision.get_hue() < 20) && counter < 200000) {
-			Intake_1.move(50);
-			Intake_2.move(50);
+			Intake_1.move(70);
+			Intake_2.move(70);
 			counter++;
 			pros::lcd::set_text(6, std::to_string(counter / 1000));
 		}
 	}
 	else if (vision.get_hue() < 300 && vision.get_hue() > 20){
 		while ((vision.get_hue() < 300 && vision.get_hue() > 20) && counter < 200000) {
-			Intake_1.move(50);
-			Intake_2.move(50);
+			Intake_1.move(70);
+			Intake_2.move(70);
 			counter++;
 			pros::lcd::set_text(6, std::to_string(counter / 1000));
 		}
