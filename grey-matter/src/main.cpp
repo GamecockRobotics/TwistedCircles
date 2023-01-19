@@ -518,7 +518,7 @@ void shoot(int speed, int count) {
  * from where it left off.
  */
 void autonomous() {
-	drive_forward(24*inch_to_mm);
+	drive_forward(-24*inch_to_mm);
 	turn_to_goal();
 	shoot(190, 2);
 
@@ -620,7 +620,20 @@ void opcontrol() {
 		left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
 		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
 		
-	
+		// Non tilt correcting code
+		// float leftPower = controller.get_analog(ANALOG_LEFT_Y);
+		// float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
+		// if (leftPower > 8) {
+		// 	chassis_l1 = leftPower;
+		// 	chassis_l2 = leftPower;
+		// 	chassis_l3 = leftPower;
+		// }
+		// if (rightPower > 8) {
+		// 	chassis_r1 = rightPower;
+		// 	chassis_r2 = rightPower;
+		// 	chassis_r3 = rightPower;
+		// }
+
 		// Turn to goal when X pressed on the controller
 		if (controller.get_digital(DIGITAL_X)) {
 			turn_to_goal();
