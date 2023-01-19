@@ -75,7 +75,6 @@ int left_target = 0, right_target = 0;
 int flywheel_target;
 
 
-bool pid = true;
 
 // Define Controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
@@ -166,7 +165,7 @@ int drive () {
 	// The maximum slew rate; variable based on direction robot is traveling to prevent tipping
 	int slew;
 	// Main control loop
-	while (pid) {
+	while (true) {
 		// Set speed of left and right side of chassis based on tank drive controls 
 		speed_l = left_target*210/127;
 		speed_r = right_target*210/127;
@@ -200,7 +199,7 @@ int drive () {
 
 
 		// Move actual voltage towards target voltage by an increment no greater than the slew rate
-		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 300 :800;
+		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 600 :1600;
 
 		if (abs(voltage_al - voltage_tl) <= slew) voltage_al = voltage_tl;
 		else voltage_al += std::signbit(voltage_al - voltage_tl) ? slew : -slew;
@@ -252,7 +251,7 @@ double get_goal_distance() {
 	return get_distance(x_loc, y_loc, goal_x, goal_y);
 }
 
-
+bool up = false;
 /**
  * Task to control flywheel speed using take back half algorithm
  */
@@ -265,17 +264,28 @@ int flywheel_task () {
 	int output = 0;
 	// Control loop for flywheel
 	while (true) {
-		// Move the angle up while intaking 
-		if (intake.get_actual_velocity() > 50) {
-			if (flywheel_potentiometer.get_angle() < 103) 
-				flywheel_angle.brake();
-			else
-				flywheel_angle = 50;
-		// Move the angle down on the down button press
-		} else if (controller.get_digital(DIGITAL_DOWN))
+		// // Move the angle up while intaking 
+		// if (intake.get_actual_velocity() > 50) {
+		// 	if (flywheel_potentiometer.get_angle() < 103) 
+		// 		flywheel_angle.brake();
+		// 	else
+		// 		flywheel_angle = 50;
+		// // Move the angle down on the down button press
+		// } else if (controller.get_digital(DIGITAL_DOWN))
+		// 	flywheel_angle = -50;
+		// else 
+		// 	flywheel_angle.brake();
+
+		// Move angle on manual control
+		if (controller.get_digital(DIGITAL_DOWN)) {
 			flywheel_angle = -50;
-		else 
+		}
+		else if (controller.get_digital(DIGITAL_UP) || up) {
+			flywheel_angle = 50;
+		}
+		else {
 			flywheel_angle.brake();
+		}
 
 		// calculate differencec in desired speed
 		error = flywheel_target - flywheel.get_actual_velocity();
@@ -427,6 +437,8 @@ void competition_initialize() {}
  * @param distance the distance to travel in mm
  */
 void drive_forward(int distance) {
+	int count = 0;
+
 	// Get initial position 
 	const int target_x = x_loc + distance*cos(theta*degree_to_radian);
 	const int target_y = y_loc + distance*sin(theta*degree_to_radian);
@@ -446,7 +458,8 @@ void drive_forward(int distance) {
 	const double kp = .4, ki = 0.001, kd = .5;
 	const double kai = .05;
 	// PID control loop
-	while (fabs(dist_error) > threshold || fabs(prev_dist_error) > threshold || abs(left_target) > 15 || abs(right_target) > 15) {
+	while ((fabs(dist_error) > threshold || fabs(prev_dist_error) > threshold || abs(left_target) > 15 || abs(right_target) > 15) && count < 600) {
+		count ++;
 		pros::lcd::set_text(6, "I'm in pid");
 		prev_dist_error = dist_error;
 
@@ -484,28 +497,21 @@ void drive_forward(int distance) {
 void shoot(int speed, int count) {
 	// Set flywheel target to desired speed
 	flywheel_target = speed;
+	up = true;
 	// Wait until flywheel is at desired speed
-	while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
-	// Shoot
-	indexer.set_value(true);
-	pros::delay(100);
-	indexer.set_value(false);
-	pros::delay(300);
-
-	// For any following shots
-	for (; count > 1; count--) {
-		// Set flywheel to maximum speed
-		flywheel_target = 220;
-		// Wait until flywheel reaches desired speed
-		while (flywheel.get_actual_velocity() < speed) { pros::delay(10); }
-		// shoot
+	for (; count > 0; count--) {
+		while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
+		up = false;
+		// Shoot
 		indexer.set_value(true);
 		pros::delay(100);
 		indexer.set_value(false);
-	pros::delay(300);
+		pros::delay(300);
 	}
-	// make sure flywheel ends at speed passed into the function
-	flywheel_target = speed;
+
+	
+	pros::delay(300);
+
 }
 
 /**
@@ -520,9 +526,9 @@ void shoot(int speed, int count) {
  * from where it left off.
  */
 void autonomous() {
-	drive_forward(-24*inch_to_mm);
+	drive_forward(24*inch_to_mm);
 	turn_to_goal();
-	shoot(190, 2);
+	shoot(210, 2);
 
 }
 
@@ -541,8 +547,6 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
-	// turn off pid control with slew
-	pid = false;
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
 	// variable to speed up or slow down flywheel based on user needs
@@ -576,12 +580,12 @@ void opcontrol() {
 
 
         // Allow user to manually adjust flywheel speed
-		if (controller.get_digital_new_press(DIGITAL_LEFT)) { 
-			flywheel_offset -= 1;
-		}
-        if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
-			flywheel_offset += 1;
-		}
+		// if (controller.get_digital_new_press(DIGITAL_LEFT)) { 
+		// 	flywheel_offset -= 1;
+		// }
+        // if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
+		// 	flywheel_offset += 1;
+		// }
 
 		// Calculate flywheel speed based on position and angle
 		flywheel_target = 0.024866 * get_goal_distance() + 3.172274 * flywheel_potentiometer.get_angle() + -193.229168 +flywheel_offset;
@@ -589,9 +593,9 @@ void opcontrol() {
 		
 		// Roller code
 
-		if (controller.get_digital(DIGITAL_UP)) {
+		if (controller.get_digital(DIGITAL_L1)) {
 			roller = 127;
-		} else if (controller.get_digital(DIGITAL_DOWN)) {
+		} else if (controller.get_digital(DIGITAL_L2)) {
 			roller = -127;
 		} else {
 			roller.brake();
@@ -621,22 +625,31 @@ void opcontrol() {
          * Joystick has a small deadzone to prevent accidental movements when 
          * the joysticks are not perfectly centered
          */ 
-		left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
-		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
+		left_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? -controller.get_analog(ANALOG_LEFT_Y) : 0; 
+		right_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? -controller.get_analog(ANALOG_RIGHT_Y) : 0; 
 		
 		// Non tilt correcting code
-		float leftPower = controller.get_analog(ANALOG_LEFT_Y);
-		float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
-		if (leftPower > 8) {
-			chassis_l1 = leftPower;
-			chassis_l2 = leftPower;
-			chassis_l3 = leftPower;
-		}
-		if (rightPower > 8) {
-			chassis_r1 = rightPower;
-			chassis_r2 = rightPower;
-			chassis_r3 = rightPower;
-		}
+		// float leftPower = controller.get_analog(ANALOG_LEFT_Y);
+		// float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
+		// if (fabs(leftPower) > 8) {
+		// 	chassis_l1 = -leftPower;
+		// 	chassis_l2 = -leftPower;
+		// 	chassis_l3 = -leftPower;
+		// } else {
+		// 	chassis_l1 = 0;
+		// 	chassis_l2 = 0;
+		// 	chassis_l3 = 0;
+		// }
+		// if (fabs(rightPower) > 8) {
+		// 	chassis_r1 = -rightPower;
+		// 	chassis_r2 = -rightPower;
+		// 	chassis_r3 = -rightPower;
+		// } else {
+		// 	chassis_r1 = 0;
+		// 	chassis_r2 = 0;
+		// 	chassis_r3 = 0;
+		// }
+
 
 		// Turn to goal when X pressed on the controller
 		if (controller.get_digital(DIGITAL_X)) {
