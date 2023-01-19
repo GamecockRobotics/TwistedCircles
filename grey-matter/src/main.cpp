@@ -75,6 +75,8 @@ int left_target = 0, right_target = 0;
 int flywheel_target;
 
 
+bool pid = true;
+
 // Define Controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // Define Motors
@@ -164,7 +166,7 @@ int drive () {
 	// The maximum slew rate; variable based on direction robot is traveling to prevent tipping
 	int slew;
 	// Main control loop
-	while (true) {
+	while (pid) {
 		// Set speed of left and right side of chassis based on tank drive controls 
 		speed_l = left_target*210/127;
 		speed_r = right_target*210/127;
@@ -539,6 +541,8 @@ void autonomous() {
  * task, not resume it from where it left off.
  */
 void opcontrol() {
+	// turn off pid control with slew
+	pid = false;
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
 	// variable to speed up or slow down flywheel based on user needs
@@ -621,18 +625,18 @@ void opcontrol() {
 		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
 		
 		// Non tilt correcting code
-		// float leftPower = controller.get_analog(ANALOG_LEFT_Y);
-		// float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
-		// if (leftPower > 8) {
-		// 	chassis_l1 = leftPower;
-		// 	chassis_l2 = leftPower;
-		// 	chassis_l3 = leftPower;
-		// }
-		// if (rightPower > 8) {
-		// 	chassis_r1 = rightPower;
-		// 	chassis_r2 = rightPower;
-		// 	chassis_r3 = rightPower;
-		// }
+		float leftPower = controller.get_analog(ANALOG_LEFT_Y);
+		float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
+		if (leftPower > 8) {
+			chassis_l1 = leftPower;
+			chassis_l2 = leftPower;
+			chassis_l3 = leftPower;
+		}
+		if (rightPower > 8) {
+			chassis_r1 = rightPower;
+			chassis_r2 = rightPower;
+			chassis_r3 = rightPower;
+		}
 
 		// Turn to goal when X pressed on the controller
 		if (controller.get_digital(DIGITAL_X)) {
