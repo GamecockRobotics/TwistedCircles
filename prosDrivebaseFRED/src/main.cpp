@@ -55,8 +55,22 @@ enum color{red, blue};
 
 	bool launcherState = true;
 	int cataFlagAuto = 1;
-	int cataFlag = 0;
-
+	
+/**
+ * A callback function for LLEMU's center button.
+ *
+ * When this callback is fired, it will toggle line 2 of the LCD text between
+ * "I was pressed!" and nothing.
+ */
+void on_center_button() {
+	static bool pressed = false;
+	pressed = !pressed;
+	if (pressed) {
+		pros::lcd::set_text(2, "I was pressed!");
+	} else {
+		pros::lcd::clear_line(2);
+	}
+}
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -186,7 +200,7 @@ void drive(int power, float distance){
 	right_mtr3.move_absolute(distance*13.37*2.5, power);
 	right_mtr4.move_absolute(distance*13.37*2.5, power);
 	pros::lcd::set_text(3, "driving");
-	pros::delay(250);
+	pros::delay(1000);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
 	while (!(left_mtr1.get_actual_velocity() == 0)) {
         pros::delay(2);
@@ -196,6 +210,26 @@ void drive(int power, float distance){
 	pros::lcd::set_text(3, "done driving");
 }
 	
+
+void newDrive(int power, float distance) {
+	
+	left_mtr1.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr2.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr3.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr4.move_absolute(distance*13.37*2.5 - 5, power);
+	right_mtr1.move_absolute(distance*13.37*2.5, power);
+	right_mtr2.move_absolute(distance*13.37*2.5, power);
+	right_mtr3.move_absolute(distance*13.37*2.5, power);
+	right_mtr4.move_absolute(distance*13.37*2.5, power);
+	pros::lcd::set_text(3, "driving");
+	pros::delay(250);
+    // Continue running this loop as long as the motor is not within +-5 units of its goal
+	while (!(left_mtr1.get_actual_velocity() == 0)) {
+        pros::delay(2);
+		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
+		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
+    }
+}
 
 
 
@@ -257,16 +291,16 @@ void runRoller(){
 
 	if ((vision.get_hue() > 300 || vision.get_hue() < 20 )) {
 		while ((vision.get_hue() > 300 || vision.get_hue() < 20) && counter < 200000) {
-			Intake_1.move(50);
-			Intake_2.move(50);
+			Intake_1.move(70);
+			Intake_2.move(70);
 			counter++;
 			pros::lcd::set_text(6, std::to_string(counter / 1000));
 		}
 	}
 	else if (vision.get_hue() < 300 && vision.get_hue() > 20){
 		while ((vision.get_hue() < 300 && vision.get_hue() > 20) && counter < 200000) {
-			Intake_1.move(50);
-			Intake_2.move(50);
+			Intake_1.move(70);
+			Intake_2.move(70);
 			counter++;
 			pros::lcd::set_text(6, std::to_string(counter / 1000));
 		}
@@ -339,10 +373,10 @@ void autonomous() {
 	// turn(right, -180);
 	// pros::delay(3000);
 	
-	//shoot();
-	//pros::delay(1000);
-	//turn(right, 5);
-	pros::delay(200);
+	// shoot();
+	// pros::delay(1000);
+	// turn(right, 6);
+	// pros::delay(200);
 	pros::lcd::set_text(2, "auton started");
 	drive(20, -15);
 	pros::delay(200);
@@ -356,7 +390,7 @@ void autonomous() {
 	Intake_1 = 127;
 	Intake_2 = 127;
 	pros::delay(200);
-	drive(50, -110);
+	newDrive(50, -110);
 	pros::delay(200);
 	drive(30, 7.5);
 	pros::delay(200);
@@ -434,7 +468,7 @@ int driveTask(){
 }
 
 void opcontrol() {
-	
+	int cataFlag = 0;
 	int intakeLock = 0;
 	int i = 0;
 	std::string buttonNum;
