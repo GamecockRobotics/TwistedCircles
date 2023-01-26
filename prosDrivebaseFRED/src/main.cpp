@@ -240,9 +240,9 @@ void turn(turnType dir, int32_t deg) {
   float prevError = deg;
   float totalError = 0;
   const float threshold = 1;
-  const float kp = 2.2; //was 1.4
-  const float ki = .4; //was .3
-  const float kd = .7; //was .8
+  const float kp = 1.59; //was 1.4
+  const float ki = 1.3; //was .3
+  const float kd = 0.8; //was .8
   std::string first = std::to_string(gyro.get_rotation());
   pros::lcd::set_text(4, "Gyro Value: " + first);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
@@ -262,7 +262,7 @@ void turn(turnType dir, int32_t deg) {
     error = deg - (gyro.get_rotation() - initialValue);
 	std::string errorInWhile = std::to_string(error);
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
-    totalError += (fabs(error) < 5 ? error : 0); // was 10
+    totalError += (fabs(error) < 10 ? error : 0); // was 10
   }
   pros::lcd::set_text(7, "I'm out of PID");
 	right_mtr1.brake();
@@ -363,7 +363,14 @@ void shoot(){
 void autonomous() {
 	
 	// For testing turn
-	//turn(right, 90);
+	while(gyro.is_calibrating()) {
+		pros::delay(20);
+	};
+	shoot();
+	pros::delay(300);
+	turn(right, 90);
+	pros::delay(5000);
+	turn(right, -90);
 	// pros::delay(3000);
 	// drive(50, 70);
 	// turn(right, 180);
@@ -377,39 +384,39 @@ void autonomous() {
 	// pros::delay(1000);
 	// turn(right, 6);
 	// pros::delay(200);
-	pros::lcd::set_text(2, "auton started");
-	drive(20, -15);
-	pros::delay(200);
-	drive(40, 2);
-	pros::delay(200);
-	runRoller();
-	pros::delay(200);
-	drive(20, 5);
-	pros::delay(200);
-	turn(right, -89);
-	Intake_1 = 127;
-	Intake_2 = 127;
-	pros::delay(200);
-	newDrive(50, -110);
-	pros::delay(200);
-	drive(30, 7.5);
-	pros::delay(200);
-	turn(right, -90);
-	pros::delay(200);
-	drive(20, 6);
-	pros::delay(400);
-	drive(50, -99);
-	pros::delay(200);
-	Intake_1 = 0;
-	Intake_2 = 0;
-	turn(right, 90);
-	pros::delay(200);
-	drive(40, -15);
-	pros::delay(200);
-	drive(40, 2);
-	pros::delay(200);
-	runRoller();
-	pros::delay(200);
+	// pros::lcd::set_text(2, "auton started");
+	// drive(20, -15);
+	// pros::delay(200);
+	// drive(40, 2);
+	// pros::delay(200);
+	// runRoller();
+	// pros::delay(200);
+	// drive(20, 5);
+	// pros::delay(200);
+	// turn(right, -89);
+	// Intake_1 = 127;
+	// Intake_2 = 127;
+	// pros::delay(200);
+	// newDrive(50, -110);
+	// pros::delay(200);
+	// drive(30, 7.5);
+	// pros::delay(200);
+	// turn(right, -90);
+	// pros::delay(200);
+	// drive(20, 6);
+	// pros::delay(400);
+	// drive(50, -99);
+	// pros::delay(200);
+	// Intake_1 = 0;
+	// Intake_2 = 0;
+	// turn(right, 90);
+	// pros::delay(200);
+	// drive(40, -15);
+	// pros::delay(200);
+	// drive(40, 2);
+	// pros::delay(200);
+	// runRoller();
+	// pros::delay(200);
 
 
 
