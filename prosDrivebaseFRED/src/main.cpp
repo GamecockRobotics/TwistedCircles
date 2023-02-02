@@ -30,6 +30,7 @@ intakeDirection intakeState = stopped;
 enum turnType{left, right};
 enum direction{forward, backward};
 enum color{red, blue};
+enum intakeSetting{on, off};
 
 
 
@@ -191,14 +192,15 @@ void drive(int power, float distance){
 	// Resets motor position to ensure accuracy in autonomous
     tareMotors();
     // Drives specified distance
-	left_mtr1.move_absolute(distance*13.37*2.5, power);
-	left_mtr2.move_absolute(distance*13.37*2.5, power);
-	left_mtr3.move_absolute(distance*13.37*2.5, power);
-	left_mtr4.move_absolute(distance*13.37*2.5, power);
+	left_mtr1.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr2.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr3.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr4.move_absolute(distance*13.37*2.5 - 5, power);
 	right_mtr1.move_absolute(distance*13.37*2.5, power);
 	right_mtr2.move_absolute(distance*13.37*2.5, power);
 	right_mtr3.move_absolute(distance*13.37*2.5, power);
 	right_mtr4.move_absolute(distance*13.37*2.5, power);
+	pros::lcd::set_text(3, "driving");
 	pros::lcd::set_text(3, "driving");
 	pros::delay(1000);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
@@ -240,7 +242,7 @@ void turn(turnType dir, int32_t deg) {
   float prevError = deg;
   float totalError = 0;
   const float threshold = 1;
-  const float kp = 1.59; //was 1.4
+  const float kp = 1.8; //was 1.4
   const float ki = 1.3; //was .3
   const float kd = 0.8; //was .8
   std::string first = std::to_string(gyro.get_rotation());
@@ -262,7 +264,7 @@ void turn(turnType dir, int32_t deg) {
     error = deg - (gyro.get_rotation() - initialValue);
 	std::string errorInWhile = std::to_string(error);
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
-    totalError += (fabs(error) < 10 ? error : 0); // was 10
+    totalError += (fabs(error) < 20 ? error : 0); // was 10
   }
   pros::lcd::set_text(7, "I'm out of PID");
 	right_mtr1.brake();
@@ -273,6 +275,10 @@ void turn(turnType dir, int32_t deg) {
 	left_mtr2.brake();
 	left_mtr3.brake();
 	left_mtr4.brake();
+}
+
+color get_color(double hue) {
+	return (hue > 300 || hue < 20) ? red : blue;
 }
 
 void runRoller(){
@@ -289,21 +295,16 @@ void runRoller(){
 
 	int counter = 0;
 
-	if ((vision.get_hue() > 300 || vision.get_hue() < 20 )) {
-		while ((vision.get_hue() > 300 || vision.get_hue() < 20) && counter < 200000) {
-			Intake_1.move(70);
-			Intake_2.move(70);
-			counter++;
-			pros::lcd::set_text(6, std::to_string(counter / 1000));
-		}
-	}
-	else if (vision.get_hue() < 300 && vision.get_hue() > 20){
-		while ((vision.get_hue() < 300 && vision.get_hue() > 20) && counter < 200000) {
-			Intake_1.move(70);
-			Intake_2.move(70);
-			counter++;
-			pros::lcd::set_text(6, std::to_string(counter / 1000));
-		}
+	bool startColor;
+
+	startColor = get_color(vision.get_hue());
+
+
+	while (startColor == get_color(vision.get_hue()) && counter < 200) {
+		Intake_1.move(70);
+		Intake_2.move(70);
+		counter++;
+		pros::delay(10);
 	}
 
 	// Stops the intake, robot movement, and turns off flashlight
@@ -318,20 +319,6 @@ void runRoller(){
 	right_mtr3 = 0;
 	right_mtr4 = 0;
 	vision.set_led_pwm(0);
-}
-
-void runIntake(direction dir, float dis){
-	Intake_1 = -127;
-	Intake_2 = -127;
-	if (dir == forward){
-		drive(127, dis);
-	} else if (dir == backward){
-		drive(-127, -dis);
-	}
-
-	Intake_1 = 0;
-	Intake_2 = 0;
-	
 }
 
 void shoot(){
@@ -357,20 +344,41 @@ void shoot(){
 	pros::delay(1500);
 	left_catapult.brake();
 	right_catapult.brake();
+}
 
+void intakeSetting(intakeSetting setting) {
+	if (setting == off) {
+		Intake_1 = 0;
+		Intake_2 = 0;
+	}
+	else if (setting == on) {
+		Intake_1 = -127;
+		Intake_2 = -127;
+	}
+}
+
+void startCatapult() {
+	while (!SlipGearSensor.get_value()) {
+		left_catapult.move_velocity(600);
+		right_catapult.move_velocity(600);
+		pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+	} 
+	left_catapult.brake();
+	right_catapult.brake();
+	pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
 }
 
 void autonomous() {
 	
 	// For testing turn
 	while(gyro.is_calibrating()) {
-		pros::delay(20);
+	 	pros::delay(20);
 	};
-	shoot();
+	// shoot();
 	pros::delay(300);
-	turn(right, 90);
-	pros::delay(5000);
-	turn(right, -90);
+	//turn(right, 90);
+	// pros::delay(5000);
+	// turn(right, -90);
 	// pros::delay(3000);
 	// drive(50, 70);
 	// turn(right, 180);
@@ -385,6 +393,9 @@ void autonomous() {
 	// turn(right, 6);
 	// pros::delay(200);
 	// pros::lcd::set_text(2, "auton started");
+
+	// Competition auton
+
 	// drive(20, -15);
 	// pros::delay(200);
 	// drive(40, 2);
@@ -418,8 +429,43 @@ void autonomous() {
 	// runRoller();
 	// pros::delay(200);
 
+	// Skills Auton	
 
-
+	startCatapult();
+	drive(20, -15);
+	pros::delay(200);
+	drive(40, 1);
+	pros::delay(200);
+	runRoller();
+	pros::delay(200);
+	drive(20, 4);
+	pros::delay(200);
+	turn(right, 90);
+	intakeSetting(on);
+	drive(40, -12);
+	pros::delay(500);
+	intakeSetting(off);
+	turn(right, 90);
+	pros::delay(200);
+	drive(20, 15);
+	pros::delay(200);
+	drive(40, -18);
+	pros::delay(200);
+	turn(right, -90);
+	pros::delay(200);
+	drive(20, -15);
+	pros::delay(200);
+	drive(40, 1);
+	pros::delay(200);
+	runRoller();
+	pros::delay(200);
+	drive(20, 4);
+	pros::delay(200);
+	turn(right, -90);
+	pros::delay(200);
+	drive(40, 54);
+	pros::delay(200);
+	turn(right, 5);
 }
 
 /**
