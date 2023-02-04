@@ -4,6 +4,7 @@
 #include "pros/optical.hpp"
 #include "pros/rotation.hpp"
 #include "pros/rtos.hpp"
+#include <cmath>
 #include <iostream>
 #include <string>
 
@@ -205,47 +206,54 @@ void drive(int power, float distance){
 	pros::delay(1000);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
 	while (!(left_mtr1.get_actual_velocity() == 0)) {
-        pros::delay(2);
+        pros::delay(10);
 		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
 		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
     }
 	pros::lcd::set_text(3, "done driving");
 }
+
+void set_motor_target(double power) {
+	left_mtr1.move_voltage(power);
+	left_mtr2.move_voltage(power);
+	left_mtr3.move_voltage(power);
+	left_mtr4.move_voltage(power);
+	right_mtr1.move_voltage(power);
+	right_mtr2.move_voltage(power);
+	right_mtr3.move_voltage(power);
+	right_mtr4.move_voltage(power);
+}
 	
 
 void newDrive(int power, float distance) {
+	distance *= 13.37*2.5;
 	
-	left_mtr1.move_absolute(distance*13.37*2.5 - 5, power);
-	left_mtr2.move_absolute(distance*13.37*2.5 - 5, power);
-	left_mtr3.move_absolute(distance*13.37*2.5 - 5, power);
-	left_mtr4.move_absolute(distance*13.37*2.5 - 5, power);
-	right_mtr1.move_absolute(distance*13.37*2.5, power);
-	right_mtr2.move_absolute(distance*13.37*2.5, power);
-	right_mtr3.move_absolute(distance*13.37*2.5, power);
-	right_mtr4.move_absolute(distance*13.37*2.5, power);
-	pros::lcd::set_text(3, "driving");
-	pros::delay(250);
-    // Continue running this loop as long as the motor is not within +-5 units of its goal
-	while (!(left_mtr1.get_actual_velocity() == 0)) {
-        pros::delay(2);
-		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
-		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
-    }
+	double targetPosition = left_mtr1.get_position() + distance;
+	double targetVoltage = power;
+	double actualVoltage = left_mtr1.get_voltage();
+	power = 0;
+
+	while(fabs(left_mtr1.get_position() - targetPosition) < 10) {
+		power = fabs(actualVoltage - targetVoltage) > 3000 ? power + 3000 : targetVoltage; 
+		set_motor_target(power);
+	}
 }
 
 
 
-void turn(turnType dir, int32_t deg) {
+void turn(int32_t deg, double precision) {
+ turnType dir = right;
  tareMotors();
  float initialValue = gyro.get_rotation();
-  float error = deg;
-  float prevError = deg;
+  float error = deg - initialValue;
+  float prevError = error;
   float totalError = 0;
-  const float threshold = 1;
-  const float kp = 1.8; //was 1.4
-  const float ki = 1.3; //was .3
-  const float kd = 0.8; //was .8
+  const float threshold = precision;
+  const float kp = 1.45; //was 1.4
+  const float ki = .7; //was .3
+  const float kd = .78; //was .8
   std::string first = std::to_string(gyro.get_rotation());
+  pros::lcd::set_text(7, "");
   pros::lcd::set_text(4, "Gyro Value: " + first);
   while (fabs(error) > threshold || fabs(prevError) > threshold) {
     int speed = (kp * error + kd * (error - prevError) + ki * totalError) * 9 / 10;
@@ -261,10 +269,11 @@ void turn(turnType dir, int32_t deg) {
     prevError = error;
 	std::string second = std::to_string((float)gyro.get_rotation());
   	pros::lcd::set_text(5, "Gyro Value In while: " + second);
-    error = deg - (gyro.get_rotation() - initialValue);
+    error = deg - (gyro.get_rotation());
 	std::string errorInWhile = std::to_string(error);
   	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
     totalError += (fabs(error) < 20 ? error : 0); // was 10
+	totalError *= (std::signbit(error) == std::signbit(prevError)) ? 1 : -3/4;
   }
   pros::lcd::set_text(7, "I'm out of PID");
 	right_mtr1.brake();
@@ -281,7 +290,7 @@ color get_color(double hue) {
 	return (hue > 300 || hue < 20) ? red : blue;
 }
 
-void runRoller(){
+void runRoller(int speed = 75){
 	vision.set_led_pwm(100);
 	pros::lcd::set_text(4, std::to_string(vision.get_hue()));
 	left_mtr1 = -20;
@@ -301,8 +310,8 @@ void runRoller(){
 
 
 	while (startColor == get_color(vision.get_hue()) && counter < 200) {
-		Intake_1.move(70);
-		Intake_2.move(70);
+		Intake_1.move(speed);
+		Intake_2.move(speed);
 		counter++;
 		pros::delay(10);
 	}
@@ -321,27 +330,61 @@ void runRoller(){
 	vision.set_led_pwm(0);
 }
 
+void skills_roller(int speed = -50) {
+	vision.set_led_pwm(100);
+	pros::lcd::set_text(4, std::to_string(vision.get_hue()));
+	left_mtr1 = -20;
+	left_mtr2 = -20;
+	left_mtr3 = -20;
+	left_mtr4 = -20;
+	right_mtr1 = -20;
+	right_mtr2 = -20;
+	right_mtr3 = -20;
+	right_mtr4 = -20;
+
+	int counter = 0;
+	
+	while(get_color(vision.get_hue()) == red && counter < 200) {
+		Intake_1.move(speed);
+		Intake_2.move(speed);
+		counter++;
+		pros::delay(10);
+	}
+
+	while(get_color(vision.get_hue()) != red && counter < 200) {
+		Intake_1.move(speed);
+		Intake_2.move(speed);
+		counter++;
+		if (counter == 80)
+			speed += 40;
+		pros::delay(10);
+	}
+
+	// Stops the intake, robot movement, and turns off flashlight
+	Intake_1.brake();
+	Intake_2.brake();
+	left_mtr1 = 0;
+	left_mtr2 = 0;
+	left_mtr3 = 0;
+	left_mtr4 = 0;
+	right_mtr1 = 0;
+	right_mtr2 = 0;
+	right_mtr3 = 0;
+	right_mtr4 = 0;
+	vision.set_led_pwm(0);
+
+
+
+}
+
 void shoot(){
 	left_catapult.move_velocity(600);
 	right_catapult.move_velocity(600);
-	// cataFlag = 1;
-
-	// pros::delay(300);
-	// while(cataFlag == 1){
-	// 	if (!SlipGearSensor.get_value()) {
-	// 		cataFlag = 1;
-	// 		left_catapult.move_velocity(600);
-	// 		right_catapult.move_velocity(600);
-	// 		pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-	// 	} else if (SlipGearSensor.get_value()) {
-	// 		cataFlag = 0;
-	// 		//intakeLock = 0;
-	// 		left_catapult.brake();
-	// 		right_catapult.brake();
-	// 		pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
-	// 	}
-	// }
 	pros::delay(1500);
+	while (!SlipGearSensor.get_value()) {
+		left_catapult.move_velocity(600);
+		right_catapult.move_velocity(600);
+	} 
 	left_catapult.brake();
 	right_catapult.brake();
 }
@@ -352,8 +395,8 @@ void intakeSetting(intakeSetting setting) {
 		Intake_2 = 0;
 	}
 	else if (setting == on) {
-		Intake_1 = -127;
-		Intake_2 = -127;
+		Intake_1 = -112;
+		Intake_2 = -112;
 	}
 }
 
@@ -361,22 +404,21 @@ void startCatapult() {
 	while (!SlipGearSensor.get_value()) {
 		left_catapult.move_velocity(600);
 		right_catapult.move_velocity(600);
-		pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
 	} 
 	left_catapult.brake();
 	right_catapult.brake();
-	pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
 }
 
 void autonomous() {
 	
 	// For testing turn
+	gyro.set_rotation(0);
 	while(gyro.is_calibrating()) {
-	 	pros::delay(20);
+	 	pros::delay(10);
 	};
 	// shoot();
-	pros::delay(300);
-	//turn(right, 90);
+	// pros::delay(300);
+	// turn(90, 1);
 	// pros::delay(5000);
 	// turn(right, -90);
 	// pros::delay(3000);
@@ -395,77 +437,128 @@ void autonomous() {
 	// pros::lcd::set_text(2, "auton started");
 
 	// Competition auton
-
-	// drive(20, -15);
-	// pros::delay(200);
-	// drive(40, 2);
-	// pros::delay(200);
-	// runRoller();
-	// pros::delay(200);
-	// drive(20, 5);
-	// pros::delay(200);
-	// turn(right, -89);
-	// Intake_1 = 127;
-	// Intake_2 = 127;
-	// pros::delay(200);
-	// newDrive(50, -110);
-	// pros::delay(200);
-	// drive(30, 7.5);
-	// pros::delay(200);
-	// turn(right, -90);
-	// pros::delay(200);
-	// drive(20, 6);
-	// pros::delay(400);
-	// drive(50, -99);
-	// pros::delay(200);
-	// Intake_1 = 0;
-	// Intake_2 = 0;
-	// turn(right, 90);
-	// pros::delay(200);
-	// drive(40, -15);
-	// pros::delay(200);
-	// drive(40, 2);
-	// pros::delay(200);
-	// runRoller();
-	// pros::delay(200);
+	// Get First roller
+	drive(20, -15);
+	pros::delay(200);
+	drive(40, 2);
+	pros::delay(200);
+	runRoller();
+	// Drive to second roller
+	pros::delay(200);
+	drive(20, 5);
+	pros::delay(200);
+	turn(-89, 1);
+	intakeSetting(on);
+	pros::delay(200);
+	drive(50, -50);
+	pros::delay(50);
+	turn(-90, 1);
+	pros::delay(50);
+	drive(40, -70);
+	pros::delay(200);
+	drive(30, 5);
+	pros::delay(200);
+	turn(-180, 6);
+	pros::delay(200);
+	drive(20, 30);
+	pros::delay(400);
+	drive(50, -99);
+	pros::delay(200);
+	intakeSetting(off);
+	// Get second roller
+	turn(-90, 1);
+	pros::delay(200);
+	drive(40, -15);
+	pros::delay(200);
+	drive(40, 2);
+	pros::delay(200);
+	runRoller();
+	pros::delay(200);
 
 	// Skills Auton	
 
-	startCatapult();
-	drive(20, -15);
-	pros::delay(200);
-	drive(40, 1);
-	pros::delay(200);
-	runRoller();
-	pros::delay(200);
-	drive(20, 4);
-	pros::delay(200);
-	turn(right, 90);
-	intakeSetting(on);
-	drive(40, -12);
-	pros::delay(500);
-	intakeSetting(off);
-	turn(right, 90);
-	pros::delay(200);
-	drive(20, 15);
-	pros::delay(200);
-	drive(40, -18);
-	pros::delay(200);
-	turn(right, -90);
-	pros::delay(200);
-	drive(20, -15);
-	pros::delay(200);
-	drive(40, 1);
-	pros::delay(200);
-	runRoller();
-	pros::delay(200);
-	drive(20, 4);
-	pros::delay(200);
-	turn(right, -90);
-	pros::delay(200);
-	drive(40, 54);
-	pros::delay(200);
-	turn(right, 5);
+	// First roller
+	// startCatapult();
+	// drive(20, -2);
+	// pros::delay(50);
+	// drive(40, 1);
+	// pros::delay(50);
+	// skills_roller();
+	// pros::delay(50); 
+	// drive(20, 4);
+	// pros::delay(50); 
+	// // Pick up first disk
+	// turn(150, 1);
+	// intakeSetting(on);
+	// drive(40, -12);
+	// pros::delay(50);
+	// drive(60, -2);
+	// pros::delay(50);
+	// drive(40, -8);
+	// pros::delay(200);
+	// intakeSetting(off);
+	// // Second Roller
+	// turn(89, 2);
+	// pros::delay(50);
+	// drive(20, -15);
+	// pros::delay(50);
+	// drive(40, 2);
+	// pros::delay(50);
+	// skills_roller();
+	// pros::delay(50);
+	// // Drive towards goal
+	// drive(20, 5);
+	// pros::delay(200);
+	// turn(0, 3);
+	// pros::delay(50);
+	// drive(40, 40);
+	// pros::delay(200);
+	// turn(-2, 3);
+	// pros::delay(50);
+	// drive(40, 16);
+	// pros::delay(50);
+	// turn(12, 2);
+	// pros::delay(50);
+	// shoot();
+	// // Line up for more disks
+	// pros::delay(200);
+	// turn(-2, 3);
+	// pros::delay(50);
+	// drive(40, -40);
+	// pros::delay(200);
+	// turn(-90, 5);
+	// pros::delay(50);
+	// drive(50, 15);
+	// pros::delay(50);
+	// gyro.set_rotation(-90);
+	// // Get more disks
+	// drive(40, -16);
+	// pros::delay(200);
+	// turn(-135, 1);
+	// pros::delay(50);
+	// intakeSetting(on);
+	// pros::delay(50);
+	// drive(30, -12);
+	// pros::delay(50);
+	// drive(40, -3);
+	// pros::delay(50);
+	// drive(30, -12);
+	// pros::delay(50);
+	// drive(40, -3);
+	// pros::delay(50);
+	// drive(30, -12);
+	// pros::delay(50);
+	// drive(40, -3);
+	// pros::delay(50);
+	// drive(50, -2);
+	// pros::delay(200);
+	// intakeSetting(off);
+	// // Shoot again
+	// turn(-45, 1);
+	// pros::delay(50);
+	// drive(40, 20);
+	// pros::delay(50);
+	// shoot();
 }
 
 /**
