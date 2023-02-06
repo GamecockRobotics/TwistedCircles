@@ -7,36 +7,37 @@
 #define CHASSIS_L1_PORT 1
 #define CHASSIS_L2_PORT 2
 #define CHASSIS_L3_PORT 3
-#define CHASSIS_R1_PORT 4
-#define CHASSIS_R2_PORT 5
-#define CHASSIS_R3_PORT 6
-#define CATA_L_PORT 7
-#define CATA_R_PORT 8
-#define INTAKE1_PORT 9
-#define INTAKE2_PORT 10
-#define ROLLER_PORT 11
-#define LAUNCHER_PORT 'g'
+#define CHASSIS_L4_PORT 4
+#define CHASSIS_R1_PORT 5
+#define CHASSIS_R2_PORT 6
+#define CHASSIS_R3_PORT 7
+#define CHASSIS_R4_PORT 8
+#define CATA_L_PORT 9
+#define CATA_R_PORT 10
+
 
 //defining sensor ports
 #define GYRO_PORT 11
 #define OPTICAL_PORT 12
 
 //declaring motors
-pros::Motor chassis_L1(CHASSIS_L1_PORT);
+pros::Motor chassis_L1(CHASSIS_L1_PORT,true);
 pros::Motor chassis_L2(CHASSIS_L2_PORT, true);
-pros::Motor chassis_L3(CHASSIS_L3_PORT);
-pros::Motor chassis_R1(CHASSIS_R1_PORT, true);
+pros::Motor chassis_L3(CHASSIS_L3_PORT, true);
+pros::Motor chassis_L4(CHASSIS_L4_PORT);
+pros::Motor chassis_R1(CHASSIS_R1_PORT);
 pros::Motor chassis_R2(CHASSIS_R2_PORT);
-pros::Motor chassis_R3(CHASSIS_R3_PORT,true);
-pros::Motor intake_1(INTAKE1_PORT);
-pros::Motor intake_2(INTAKE2_PORT,true);
-pros::Motor roller(ROLLER_PORT);
+pros::Motor chassis_R3(CHASSIS_R3_PORT);
+pros::Motor chassis_R4(CHASSIS_R4_PORT, true);
+// pros::Motor intake_1(INTAKE1_PORT);
+// pros::Motor intake_2(INTAKE2_PORT,true);
+// pros::Motor roller(ROLLER_PORT);
 pros::Motor catapult_L(CATA_L_PORT);
 pros::Motor catapult_R(CATA_R_PORT);
 
 //Declaring sensors and pneumatics
 pros::Imu gyro (GYRO_PORT);
-pros::ADIDigitalOut launcher(LAUNCHER_PORT);
+//pros::ADIDigitalOut launcher(LAUNCHER_PORT);
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 
@@ -84,8 +85,8 @@ void initialize() {
 
 	pros::lcd::register_btn1_cb(on_center_button);
 
-	intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
-	intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
+	// intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
+	// intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
 
 	
 }
@@ -131,20 +132,24 @@ int driveTask(){
 			chassis_R1.move(right);
 			chassis_R2.move(right);
 			chassis_R3.move(right);
+			chassis_R4.move(right);
 		} else {
 			chassis_R1.brake();
 			chassis_R2.brake();
 			chassis_R3.brake();
+			chassis_R4.brake();
 		}
 		if(abs(left) > 5){
 			left = left - 5 * (127/122);
 			chassis_L1.move(left);
 			chassis_L2.move(left);
 			chassis_L3.move(left);
+			chassis_L4.move(left);
 		} else {
 			chassis_L1.brake();
 			chassis_L2.brake();
 			chassis_L3.brake();
+			chassis_L4.brake();
 		}
 
 	
