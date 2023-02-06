@@ -88,7 +88,7 @@ pros::Motor chassis_l1(CHASSIS_L1_PORT);
 pros::Motor chassis_l2(CHASSIS_L2_PORT);
 pros::Motor chassis_l3(CHASSIS_L3_PORT);
 pros::Motor intake(INTAKE_PORT, true);
-pros::Motor flywheel(FLYWHEEL_PORT, true);
+pros::Motor flywheel(FLYWHEEL_PORT);
 pros::Motor flywheel_angle(FLYWHEEL_A_PORT, true);
 pros::Motor roller(ROLLER_PORT);
 

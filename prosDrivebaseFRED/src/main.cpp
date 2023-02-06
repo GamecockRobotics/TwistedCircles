@@ -193,50 +193,50 @@ void drive(int power, float distance){
     // Resets motor position to ensure accuracy in autonomous
     tareMotors();
     // Drives specified distance
-    left_mtr1.move_absolute(distance*13.37*2.5 - 5, power);
-    left_mtr2.move_absolute(distance*13.37*2.5 - 5, power);
-    left_mtr3.move_absolute(distance*13.37*2.5 - 5, power);
-    left_mtr4.move_absolute(distance*13.37*2.5 - 5, power);
-    right_mtr1.move_absolute(distance*13.37*2.5, power);
-    right_mtr2.move_absolute(distance*13.37*2.5, power);
-    right_mtr3.move_absolute(distance*13.37*2.5, power);
-    right_mtr4.move_absolute(distance*13.37*2.5, power);
-    pros::lcd::set_text(3, "driving");
-    pros::lcd::set_text(3, "driving");
-    pros::delay(1000);
+	left_mtr1.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr2.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr3.move_absolute(distance*13.37*2.5 - 5, power);
+	left_mtr4.move_absolute(distance*13.37*2.5 - 5, power);
+	right_mtr1.move_absolute(distance*13.37*2.5, power);
+	right_mtr2.move_absolute(distance*13.37*2.5, power);
+	right_mtr3.move_absolute(distance*13.37*2.5, power);
+	right_mtr4.move_absolute(distance*13.37*2.5, power);
+	pros::lcd::set_text(3, "driving");
+	pros::lcd::set_text(3, "driving");
+	pros::delay(1000);
     // Continue running this loop as long as the motor is not within +-5 units of its goal
-    while (!(left_mtr1.get_actual_velocity() == 0)) {
+	while (!(left_mtr1.get_actual_velocity() == 0)) {
         pros::delay(10);
-        pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
-        pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
+		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
+		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
     }
-    pros::lcd::set_text(3, "done driving");
+	pros::lcd::set_text(3, "done driving");
 }
 
 void set_motor_target(double power) {
-    left_mtr1.move_voltage(power);
-    left_mtr2.move_voltage(power);
-    left_mtr3.move_voltage(power);
-    left_mtr4.move_voltage(power);
-    right_mtr1.move_voltage(power);
-    right_mtr2.move_voltage(power);
-    right_mtr3.move_voltage(power);
-    right_mtr4.move_voltage(power);
+	left_mtr1.move_voltage(power);
+	left_mtr2.move_voltage(power);
+	left_mtr3.move_voltage(power);
+	left_mtr4.move_voltage(power);
+	right_mtr1.move_voltage(power);
+	right_mtr2.move_voltage(power);
+	right_mtr3.move_voltage(power);
+	right_mtr4.move_voltage(power);
 }
-    
+	
 
 void newDrive(int power, float distance) {
-    distance *= 13.37*2.5;
-    
-    double targetPosition = left_mtr1.get_position() + distance;
-    double targetVoltage = power;
-    double actualVoltage = left_mtr1.get_voltage();
-    power = 0;
+	distance *= 13.37*2.5;
+	
+	double targetPosition = left_mtr1.get_position() + distance;
+	double targetVoltage = power;
+	double actualVoltage = left_mtr1.get_voltage();
+	power = 0;
 
-    while(fabs(left_mtr1.get_position() - targetPosition) < 10) {
-        power = fabs(actualVoltage - targetVoltage) > 3000 ? power + 3000 : targetVoltage; 
-        set_motor_target(power);
-    }
+	while(fabs(left_mtr1.get_position() - targetPosition) < 10) {
+		power = fabs(actualVoltage - targetVoltage) > 3000 ? power + 3000 : targetVoltage; 
+		set_motor_target(power);
+	}
 }
 
 
@@ -267,13 +267,13 @@ void turn(int32_t deg, double precision) {
     right_mtr4.move(dir == right ? -speed : speed);
     pros::delay(200);
     prevError = error;
-    std::string second = std::to_string((float)gyro.get_rotation());
-    pros::lcd::set_text(5, "Gyro Value In while: " + second);
+	std::string second = std::to_string((float)gyro.get_rotation());
+  	pros::lcd::set_text(5, "Gyro Value In while: " + second);
     error = deg - (gyro.get_rotation());
-    std::string errorInWhile = std::to_string(error);
-    pros::lcd::set_text(6, "Error Value: " + errorInWhile);
+	std::string errorInWhile = std::to_string(error);
+  	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
     totalError += (fabs(error) < 20 ? error : 0); // was 10
-    totalError *= (std::signbit(error) == std::signbit(prevError)) ? 1 : -3/4;
+	totalError *= (std::signbit(error) == std::signbit(prevError)) ? 1 : -3/4;
   }
   pros::lcd::set_text(7, "I'm out of PID");
     right_mtr1.brake();
