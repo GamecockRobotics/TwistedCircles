@@ -1,4 +1,6 @@
 #include "main.h"
+#include "pros/misc.h"
+#include "pros/motors.hpp"
 
 
 /**
@@ -60,16 +62,38 @@ void opcontrol() {
 	pros::Motor chassis_r1(8, true);
 	pros::Motor chassis_r2(10, true);
 
+	pros::Motor fly(20);
+	pros::Motor in(13);
+
 	while (true) {
 		
 		int left = master.get_analog(ANALOG_LEFT_Y);
 		int right = master.get_analog(ANALOG_RIGHT_Y);
+
+		left = abs(left) > 15 ? left : 0;
+		right = abs(right) > 15 ? right : 0;
 
 		chassis_l1 = left;
 		chassis_l2 = left;
 		
 		chassis_r1 = right;
 		chassis_r2 = right;
+
+		if (master.get_digital(DIGITAL_L1)) {
+			fly = 254;
+		} else if (master.get_digital(DIGITAL_L2)) {
+			fly = -254;
+		} else {
+			fly = 0;
+		}
+
+		if (master.get_digital(DIGITAL_R1)) {
+			in = 127;
+		} else if (master.get_digital(DIGITAL_R2)) {
+			in = -127;
+		} else {
+			in = 0;
+		}
 
 		pros::delay(20);
 	}
