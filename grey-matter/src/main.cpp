@@ -5,6 +5,7 @@
 #include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.h"
+#include "pros/optical.hpp"
 #include "pros/rtos.hpp"
 #include <cctype>
 #include <cmath>
@@ -14,7 +15,7 @@
 #include <type_traits>
 
 // Define Ports for Motors
-#define CHASSIS_L1_PORT 3
+#define CHASSIS_L1_PORT 4
 #define CHASSIS_L2_PORT 1
 #define CHASSIS_L3_PORT 8
 #define CHASSIS_R1_PORT 5
@@ -30,10 +31,11 @@
 #define TRACKING_SIDE_PORT 13
 #define TRACKING_FORWARD_PORT 20
 #define GYRO_PORT 9
+#define COLOR_PORT 7
 
 // Define Ports for sensors and pistons on the Analog Ports
 #define INDEXER_PORT 2
-#define ENDGAME_PORT 1
+#define ENDGAME_PORT 4
 #define FLYWHEEL_POTENTIOMETER_PORT 3
 
 
@@ -56,7 +58,7 @@ static constexpr double track_wheel_size = 0.00609556241;
 // Distance from back tracking wheel to center of robot
 static constexpr double back_track_offset = 150;
 // The angle the robot is facing
-static constexpr double start_theta = -90;
+static constexpr double start_theta = 180;
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -64,7 +66,7 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 1378, y_loc = 3480;
+double x_loc = 1524, y_loc = 3480;
 // Variable to keep track of the Orientation of the Robot
 double theta;
 
@@ -72,7 +74,7 @@ double theta;
 int left_target = 0, right_target = 0;
 
 // variable to store the target speed
-int flywheel_target;
+int flywheel_target = 0;
 
 
 
@@ -89,14 +91,17 @@ pros::Motor intake(INTAKE_PORT, true);
 pros::Motor flywheel(FLYWHEEL_PORT);
 pros::Motor flywheel_angle(FLYWHEEL_A_PORT, true);
 pros::Motor roller(ROLLER_PORT);
+
 // Define Pistons
 pros::ADIDigitalOut indexer(INDEXER_PORT);
+pros::ADIDigitalOut endgame(ENDGAME_PORT);
 // Define Sensors
 pros::Optical roller_sensor(ROLLER_SENSOR_PORT);
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
 pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);
 pros::ADIPotentiometer flywheel_potentiometer(FLYWHEEL_POTENTIOMETER_PORT);
 pros::IMU gyro(GYRO_PORT);
+pros::Optical color(COLOR_PORT);
 
 
 /**
@@ -264,29 +269,6 @@ int flywheel_task () {
 	int output = 0;
 	// Control loop for flywheel
 	while (true) {
-		// // Move the angle up while intaking 
-		// if (intake.get_actual_velocity() > 50) {
-		// 	if (flywheel_potentiometer.get_angle() < 103) 
-		// 		flywheel_angle.brake();
-		// 	else
-		// 		flywheel_angle = 50;
-		// // Move the angle down on the down button press
-		// } else if (controller.get_digital(DIGITAL_DOWN))
-		// 	flywheel_angle = -50;
-		// else 
-		// 	flywheel_angle.brake();
-
-		// Move angle on manual control
-		if (controller.get_digital(DIGITAL_DOWN)) {
-			flywheel_angle = -40;
-		}
-		else if (controller.get_digital(DIGITAL_UP) || (up)) {
-			flywheel_angle = 40;
-		}
-		else {
-			flywheel_angle.brake();
-		}
-
 		// calculate differencec in desired speed
 		error = flywheel_target - flywheel.get_actual_velocity();
 
@@ -294,7 +276,7 @@ int flywheel_task () {
 		output += error;
 		
 		// If going to fast slow down some
-		if (error < -5) {
+		if (error < -flywheel_target/25) {
 			output = (output+tbh)/2;
 			tbh = output;
 		}
@@ -400,17 +382,14 @@ void turn_to_goal() {
 
 	// Heading between -180 and 180 for the direction that the robot needs to be facing at the given
 	// point to be facing the goal
-	double target_theta = fmod(((x > 0 ? 0 : pi) - atan((y_loc - goal_y)/(x_loc - goal_x))),2*pi)*radian_to_degree - fmod(theta, 360);
+	double target_theta = fmod(((x > 0 ? 0 : pi) - atan((x_loc - goal_x)/(y_loc - goal_y))),2*pi)*radian_to_degree - fmod(theta, 360);
 
-	turn(fmod(target_theta, 360));
+	//turn(fmod(target_theta, 360));
 
 	// Theoretically correct though untested
-	// turn_to_angle(((x > 0 ? 0 : pi) - atan((y_loc - goal_y)/(x_loc - goal_x))));
+	turn_to_angle(((x > 0 ? 0 : pi) - atan((x_loc - goal_x)/(y_loc - goal_y))));
 
 }
-
-
-
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -495,6 +474,52 @@ void shoot(int speed, int count) {
 }
 
 /**
+ *	Gets if the color of the roller optical sensor is red
+ *	@return true if the color is red otherwise false
+ */
+bool is_red(double hue) {
+	return color.get_hue() > 300 || color.get_hue() < 20;
+}
+
+/**
+ * Autonomous roller function to change the roller from current color to new color
+ */
+void run_roller(){
+	// Turn on flashlight
+	color.set_led_pwm(100);
+	
+	// Drive forward into roller
+	left_target = -20;
+	right_target = -20;
+
+	// counter to exit loop if taking too long
+	int counter = 0;
+
+	// get the start color of the roller
+	bool start_color = is_red(color.get_hue());
+
+	// while start color is not the current color
+	while (start_color == is_red(color.get_hue()) && counter < 200) {
+		// turn roller
+		roller.move(70);
+		// counter to break if stuck on screw
+		counter++;
+		// delay to allow other tasks to run
+		pros::delay(10);
+	}
+
+	// Stops the intake, robot movement, and turns off flashlight
+	roller.brake();
+	
+	// brake chassis
+	left_target = 0;
+	right_target = 0;
+
+	// turn off flashlight
+	color.set_led_pwm(0);
+}
+
+/**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
  * the Field Management System or the VEX Competition Switch in the autonomous
@@ -507,8 +532,8 @@ void shoot(int speed, int count) {
  */
 void autonomous() {
 	drive_forward(24*inch_to_mm);
-	turn_to_goal();
-	shoot(200, 2);
+	turn(24);
+	shoot(190, 2);
 
 }
 
@@ -529,12 +554,18 @@ void autonomous() {
 void opcontrol() {
 	// Flag to set the position of the indexing piston
 	int indexing_flag = 0;
+	bool endgame_flag = false;
 	// variable to speed up or slow down flywheel based on user needs
 	int flywheel_offset = 0;
 	// Variables to calculate chassis speed when using arcade drive
 	int power, turn;
 	// Main Control Loop
 	while (true) {
+		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
+			pros::Task run_flywheel_task(flywheel_task);
+		}
+
+
 		// Debugging for the Intake
 		if (controller.get_digital(DIGITAL_R1))
 			intake = 127;
@@ -568,7 +599,7 @@ void opcontrol() {
 		// }
 
 		// Calculate flywheel speed based on position and angle
-		flywheel_target = 0.024866 * get_goal_distance() + 3.172274 * flywheel_potentiometer.get_angle() + -193.229168 +flywheel_offset;
+		flywheel_target = 0.04049 * get_goal_distance() + 97.61662 +flywheel_offset;
 		
 		
 		// Roller code
@@ -591,10 +622,10 @@ void opcontrol() {
          * Increases and reduces power of left and right sides of the chassis based on the horizontal
          * value of the left joystick. Respectively turns chassis left and right based on value.
          */ 
-		// power = controller.get_analog(ANALOG_LEFT_Y); 
-		// turn = controller.get_analog(ANALOG_LEFT_X); 
-		// right_target = power + turn; 
-		// left_target = power - turn; 
+		//power = controller.get_analog(ANALOG_LEFT_Y); 
+		//turn = controller.get_analog(ANALOG_LEFT_X); 
+		//right_target = power + turn; 
+		//left_target = power - turn; 
  
 		/** 
          * Base Tank Controls 
@@ -605,30 +636,10 @@ void opcontrol() {
          * Joystick has a small deadzone to prevent accidental movements when 
          * the joysticks are not perfectly centered
          */ 
-		left_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? -controller.get_analog(ANALOG_LEFT_Y) : 0; 
-		right_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? -controller.get_analog(ANALOG_RIGHT_Y) : 0; 
+		left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
+		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
 		
-		// Non tilt correcting code
-		// float leftPower = controller.get_analog(ANALOG_LEFT_Y);
-		// float rightPower = controller.get_analog(ANALOG_RIGHT_Y);
-		// if (fabs(leftPower) > 8) {
-		// 	chassis_l1 = -leftPower;
-		// 	chassis_l2 = -leftPower;
-		// 	chassis_l3 = -leftPower;
-		// } else {
-		// 	chassis_l1 = 0;
-		// 	chassis_l2 = 0;
-		// 	chassis_l3 = 0;
-		// }
-		// if (fabs(rightPower) > 8) {
-		// 	chassis_r1 = -rightPower;
-		// 	chassis_r2 = -rightPower;
-		// 	chassis_r3 = -rightPower;
-		// } else {
-		// 	chassis_r1 = 0;
-		// 	chassis_r2 = 0;
-		// 	chassis_r3 = 0;
-		// }
+		
 
 
 		// Turn to goal when X pressed on the controller
@@ -636,7 +647,24 @@ void opcontrol() {
 			turn_to_goal();
 		}
 
+		if (controller.get_digital_new_press(DIGITAL_LEFT)) {
+			flywheel_target -= 1;
+		}
+		if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
+			flywheel_target += 1;
+		}
 
+
+		pros::lcd::set_text(0, "speed: " + std::to_string(flywheel.get_actual_velocity()));
+		pros::lcd::set_text(1, "target: " + std::to_string(flywheel_target));
+
+		if (controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_RIGHT) ) {
+			endgame_flag = !endgame_flag;
+
+			endgame.set_value(endgame_flag);
+			pros::delay(500);
+		}
+		
 		
 
 		// Delay so other processes can run
