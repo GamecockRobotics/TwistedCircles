@@ -1,7 +1,14 @@
 #include "main.h"
-//#include <stdio.h>
+#include <stdio.h>
 #include "pros/apix.h"
 #include <cstdio>
+#include "pros/serial.h"
+#include <sstream>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+
 //#include "raspberryadapter.cpp"
 /**
  * A callback function for LLEMU's center button.
@@ -77,18 +84,49 @@ void autonomous() {}
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+void datatest(){
+	const std::string filename = "data.txt";
+    std::ofstream file(filename);
+	file << "Fuck" << std::endl;
+	file.close();
+}
+
 
 void testing(){
 	//try{
 
 		//pros::c::serctl(SERCTL_ACTIVATE, void *const extra_arg)
-		FILE* fp = fopen("/dev/port20", "wb");
+		//pros::c::serctl(SERCTL_DISABLE_COBS);
+		pros::c::serial_enable(18);
+		pros::c::serial_set_baudrate(18, 115200);
+		pros::delay(10);
+
+		FILE* fp = fopen("/dev/port18", "wb");
+
+
+		std::cerr << "we ball";
 
 		static char msg[] = "Sup";
 
-   		std::fwrite(msg, 1, strlen(msg), fp);
+   		//std::fwrite(msg, 1, strlen(msg), fp);
+		pros::c::serial_write_byte(18, 8);
+		std::cerr << pros::c::serial_read_byte(18);
+        //fflush(fp1);
+		
 
-    	fclose(fp);
+
+		// FILE* fp1 = fopen("/dev/port1", "wb");
+
+
+		// if( fp1 != NULL ) {
+        // 	fprintf(fp, "Hello\r\n");
+		// 	fclose(fp);
+        // 	//fflush(fp1);
+      	// } else {
+		// 	std::cerr << "Fuck2";
+		// 	fclose(fp);
+		// }
+    	
 		//std::cerr << "Sup";
 		
 	// } catch 
@@ -98,11 +136,15 @@ void testing(){
 	
  }
 
+
+
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
 	
+	//testing();
 	testing();
-
+	
+	//pros::Task gyroTask (serialRead);
 
 	while (true) {
 		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
