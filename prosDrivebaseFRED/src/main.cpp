@@ -83,6 +83,10 @@ void on_center_button() {
 void initialize() {
     pros::lcd::initialize();
 
+    /*
+    Sets necessary motor values to start, like locking the catapult motor, resetting all motor positions
+    to zero, and defining rotation units of the motor
+    */
 
     pros::c::motor_tare_position(LEFT_CATAPULT_PORT);
     pros::c::motor_tare_position(RIGHT_CATAPULT_PORT);
@@ -101,39 +105,6 @@ void initialize() {
     right_mtr1.tare_position();
     right_mtr2.tare_position();
     right_mtr3.tare_position();
-
-    //gyro.reset();
-    //pros::delay(3000);
-
-    // while (cataFlagAuto == 1) {
-    //  if (!SlipGearSensor.get_value()) {
-    //      cataFlagAuto = 1;
-    //      left_catapult.move_velocity(600);
-    //      right_catapult.move_velocity(600);
-    //      pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-    //  }
-    //  else if (SlipGearSensor.get_value()) {
-    //      cataFlagAuto = 0;
-    //      //intakeLock = 0;
-    //      left_catapult.brake();
-    //      right_catapult.brake();
-    //      pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
-    //  }
-    // }
-
-    // if (!SlipGearSensor.get_value()) {
-    //      cataFlag = 1;
-    //      left_catapult.move_velocity(600);
-    //      right_catapult.move_velocity(600);
-    //      pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-    //  } else if (SlipGearSensor.get_value()) {
-    //      cataFlag = 0;
-    //      //intakeLock = 0;
-    //      left_catapult.brake();
-    //      right_catapult.brake();
-    //      pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
-    //  }
-        
 }
 
 /**
@@ -142,18 +113,7 @@ void initialize() {
  * the robot is enabled, this task will exit.
  */
 void disabled() {
-    // if (!SlipGearSensor.get_value()) {
-    //      cataFlag = 1;
-    //      left_catapult.move_velocity(600);
-    //      right_catapult.move_velocity(600);
-    //      pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-    //  } else if (SlipGearSensor.get_value()) {
-    //      cataFlag = 0;
-    //      //intakeLock = 0;
-    //      left_catapult.brake();
-    //      right_catapult.brake();
-    //      pros::lcd::set_text(3, "down" + std::to_string(SlipGearSensor.get_value()));
-    //  }
+
 }
 
 /**
@@ -167,18 +127,9 @@ void disabled() {
  */
 void competition_initialize() {}
 
-/**
- * Runs the user autonomous code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the autonomous
- * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
- *
- * If the robot is disabled or communications is lost, the autonomous task
- * will be stopped. Re-enabling the robot will restart the task, not re-start it
- * from where it left off.
- */
+
 void tareMotors(){
+    // Resets all drive train motor positions to 0
     left_mtr1.tare_position();
     left_mtr2.tare_position();
     left_mtr3.tare_position();
@@ -193,6 +144,7 @@ void drive(int power, float distance){
     // Resets motor position to ensure accuracy in autonomous
     tareMotors();
     // Drives specified distance
+    // Multiplies distance by the conversion factor for inches
 	left_mtr1.move_absolute(distance*13.37*2.5 - 5, power);
 	left_mtr2.move_absolute(distance*13.37*2.5 - 5, power);
 	left_mtr3.move_absolute(distance*13.37*2.5 - 5, power);
@@ -202,80 +154,68 @@ void drive(int power, float distance){
 	right_mtr3.move_absolute(distance*13.37*2.5, power);
 	right_mtr4.move_absolute(distance*13.37*2.5, power);
 	pros::lcd::set_text(3, "driving");
-	pros::lcd::set_text(3, "driving");
+    // Waits a second to allow motors to build speed
 	pros::delay(1000);
-    // Continue running this loop as long as the motor is not within +-5 units of its goal
+    // Continue running this loop as long as the motor is moving, locking the program in the function
 	while (!(left_mtr1.get_actual_velocity() == 0)) {
         pros::delay(10);
+        // Prints motor voltage values
 		pros::lcd::set_text(4, std::to_string((left_mtr1.get_voltage()+left_mtr2.get_voltage()+left_mtr3.get_voltage()+left_mtr4.get_voltage())/4));
 		pros::lcd::set_text(5, std::to_string((right_mtr1.get_voltage()+right_mtr2.get_voltage()+right_mtr3.get_voltage()+right_mtr4.get_voltage())/4));
     }
 	pros::lcd::set_text(3, "done driving");
 }
 
-void set_motor_target(double power) {
-	left_mtr1.move_voltage(power);
-	left_mtr2.move_voltage(power);
-	left_mtr3.move_voltage(power);
-	left_mtr4.move_voltage(power);
-	right_mtr1.move_voltage(power);
-	right_mtr2.move_voltage(power);
-	right_mtr3.move_voltage(power);
-	right_mtr4.move_voltage(power);
-}
-	
-
-void newDrive(int power, float distance) {
-	distance *= 13.37*2.5;
-	
-	double targetPosition = left_mtr1.get_position() + distance;
-	double targetVoltage = power;
-	double actualVoltage = left_mtr1.get_voltage();
-	power = 0;
-
-	while(fabs(left_mtr1.get_position() - targetPosition) < 10) {
-		power = fabs(actualVoltage - targetVoltage) > 3000 ? power + 3000 : targetVoltage; 
-		set_motor_target(power);
-	}
-}
-
-
 
 void turn(int32_t deg, double precision) {
- turnType dir = right;
- tareMotors();
- float initialValue = gyro.get_rotation();
-  float error = deg - initialValue;
-  float prevError = error;
-  float totalError = 0;
-  const float threshold = precision;
-  const float kp = 1.45; //was 1.4
-  const float ki = .7; //was .3
-  const float kd = .78; //was .8
-  std::string first = std::to_string(gyro.get_rotation());
-  pros::lcd::set_text(7, "");
-  pros::lcd::set_text(4, "Gyro Value: " + first);
-  while (fabs(error) > threshold || fabs(prevError) > threshold) {
-    int speed = (kp * error + kd * (error - prevError) + ki * totalError) * 9 / 10;
-    left_mtr1.move(dir == left ? -speed : speed);
-    left_mtr2.move(dir == left ? -speed : speed);
-    left_mtr3.move(dir == left ? -speed : speed);
-    left_mtr4.move(dir == left ? -speed : speed);
-    right_mtr1.move(dir == right ? -speed : speed);
-    right_mtr2.move(dir == right ? -speed : speed);
-    right_mtr3.move(dir == right ? -speed : speed);
-    right_mtr4.move(dir == right ? -speed : speed);
-    pros::delay(200);
-    prevError = error;
-	std::string second = std::to_string((float)gyro.get_rotation());
-  	pros::lcd::set_text(5, "Gyro Value In while: " + second);
-    error = deg - (gyro.get_rotation());
-	std::string errorInWhile = std::to_string(error);
-  	pros::lcd::set_text(6, "Error Value: " + errorInWhile);
-    totalError += (fabs(error) < 20 ? error : 0); // was 10
-	totalError *= (std::signbit(error) == std::signbit(prevError)) ? 1 : -3/4;
+    // PID loop to control turning
+    /* 
+    Turntype is legacy code that used to determine if the robot was turning left or right,
+    this code was bugged to where left did not work so we defaulted to turning right, and
+    using negative values to turn left
+    */
+    turnType dir = right;
+    tareMotors();
+    // Gets initial gyro position
+    float initialValue = gyro.get_rotation();
+    // Sets error to the degree that we are turning to, degree is based off starting rotation at 
+    // the beginning of the match, not current rotation
+    float error = deg - initialValue;
+    float prevError = error;
+    float totalError = 0;
+    const float threshold = precision;
+    const float kp = 1.45; //was 1.4
+    const float ki = .7; //was .3
+    const float kd = .78; //was .8
+    std::string first = std::to_string(gyro.get_rotation());
+    pros::lcd::set_text(7, "");
+    pros::lcd::set_text(4, "Gyro Value: " + first);
+    // Loops PID until the error is within the threshold for 2 cycles
+    while (fabs(error) > threshold || fabs(prevError) > threshold) {
+        int speed = (kp * error + kd * (error - prevError) + ki * totalError) * 9 / 10;
+        // Move motors
+        left_mtr1.move(dir == left ? -speed : speed);
+        left_mtr2.move(dir == left ? -speed : speed);
+        left_mtr3.move(dir == left ? -speed : speed);
+        left_mtr4.move(dir == left ? -speed : speed);
+        right_mtr1.move(dir == right ? -speed : speed);
+        right_mtr2.move(dir == right ? -speed : speed);
+        right_mtr3.move(dir == right ? -speed : speed);
+        right_mtr4.move(dir == right ? -speed : speed);
+        pros::delay(200);
+        prevError = error;
+        std::string second = std::to_string((float)gyro.get_rotation());
+        pros::lcd::set_text(5, "Gyro Value In while: " + second);
+        // Updates new error value
+        error = deg - (gyro.get_rotation());
+        std::string errorInWhile = std::to_string(error);
+        pros::lcd::set_text(6, "Error Value: " + errorInWhile);
+        // Increments total error while error is less than 20, allows for fine turns
+        totalError += (fabs(error) < 20 ? error : 0); // was 10
+        // Flips direction of total error and reduces it if the goal is overshot
+        totalError *= (std::signbit(error) == std::signbit(prevError)) ? 1 : -3/4;
   }
-  pros::lcd::set_text(7, "I'm out of PID");
+    pros::lcd::set_text(7, "I'm out of PID");
     right_mtr1.brake();
     right_mtr2.brake();
     right_mtr3.brake();
@@ -287,12 +227,17 @@ void turn(int32_t deg, double precision) {
 }
 
 color get_color(double hue) {
+    // Returns red or blue based off of the hue value seen by the vision sensor
     return (hue > 300 || hue < 20) ? red : blue;
 }
 
 void runRoller(int speed = 75){
+    // Scores roller if the roller is at competition start position
+    // Turns on flashlight
     vision.set_led_pwm(100);
     pros::lcd::set_text(4, std::to_string(vision.get_hue()));
+
+    // Slowly backs into roller
     left_mtr1 = -20;
     left_mtr2 = -20;
     left_mtr3 = -20;
@@ -303,11 +248,10 @@ void runRoller(int speed = 75){
     right_mtr4 = -20;
 
     int counter = 0;
-
     bool startColor;
-
     startColor = get_color(vision.get_hue());
 
+    // Spins roller until it sees a different color than what it started at    
 
     while (startColor == get_color(vision.get_hue()) && counter < 200) {
         Intake_1.move(speed);
@@ -330,7 +274,9 @@ void runRoller(int speed = 75){
     vision.set_led_pwm(0);
 }
 
+// Scores roller in skills autonomous
 void skills_roller(int speed = -50) {
+    // Turns on flashlight and slowly backs into roller
     vision.set_led_pwm(100);
     pros::lcd::set_text(4, std::to_string(vision.get_hue()));
     left_mtr1 = -20;
@@ -341,9 +287,9 @@ void skills_roller(int speed = -50) {
     right_mtr2 = -20;
     right_mtr3 = -20;
     right_mtr4 = -20;
-
     int counter = 0;
     
+    // 2 while loops spin until color changes twice
     while(get_color(vision.get_hue()) == red && counter < 200) {
         Intake_1.move(speed);
         Intake_2.move(speed);
@@ -372,15 +318,14 @@ void skills_roller(int speed = -50) {
     right_mtr3 = 0;
     right_mtr4 = 0;
     vision.set_led_pwm(0);
-
-
-
 }
 
 void shoot(){
+    // Moves catapult for 1.5 seconds, which launches the catapult
     left_catapult.move_velocity(600);
     right_catapult.move_velocity(600);
     pros::delay(1500);
+    // Keeps spinning the catapult until button is pressed
     while (!SlipGearSensor.get_value()) {
         left_catapult.move_velocity(600);
         right_catapult.move_velocity(600);
@@ -390,6 +335,7 @@ void shoot(){
 }
 
 void intakeSetting(intakeSetting setting) {
+    // Turns intake either on or off
     if (setting == off) {
         Intake_1 = 0;
         Intake_2 = 0;
@@ -401,6 +347,7 @@ void intakeSetting(intakeSetting setting) {
 }
 
 void startCatapult() {
+    // Starts catapult at start of match
     while (!SlipGearSensor.get_value()) {
         left_catapult.move_velocity(600);
         right_catapult.move_velocity(600);
@@ -408,6 +355,18 @@ void startCatapult() {
     left_catapult.brake();
     right_catapult.brake();
 }
+
+/**
+ * Runs the user autonomous code. This function will be started in its own task
+ * with the default priority and stack size whenever the robot is enabled via
+ * the Field Management System or the VEX Competition Switch in the autonomous
+ * mode. Alternatively, this function may be called in initialize or opcontrol
+ * for non-competition testing purposes.
+ *
+ * If the robot is disabled or communications is lost, the autonomous task
+ * will be stopped. Re-enabling the robot will restart the task, not re-start it
+ * from where it left off.
+ */
 
 void autonomous() {
     int cataFlag;
@@ -648,6 +607,7 @@ void opcontrol() {
         left_mtr3.move(left);*/
         buttonNum = std::to_string(SlipGearSensor.get_value());
         pros::screen::print(TEXT_MEDIUM, 1, "Sensor value: %3d", SlipGearSensor.get_value());
+        
         //Catapult pull back on Button Sensor
         if (!SlipGearSensor.get_value()) {
             cataFlag = 1;
