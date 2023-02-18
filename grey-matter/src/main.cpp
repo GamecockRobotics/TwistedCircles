@@ -7,6 +7,7 @@
 #include "pros/motors.h"
 #include "pros/optical.hpp"
 #include "pros/rtos.hpp"
+#include "pros/screen.h"
 #include <cctype>
 #include <cmath>
 #include <cstddef>
@@ -18,11 +19,12 @@
 #define CHASSIS_L1_PORT 4
 #define CHASSIS_L2_PORT 1
 #define CHASSIS_L3_PORT 8
+#define CHASSIS_L4_PORT 6
 #define CHASSIS_R1_PORT 5
 #define CHASSIS_R2_PORT 10
 #define CHASSIS_R3_PORT 15
+#define CHASSIS_R4_PORT 11
 #define INTAKE_PORT 19
-#define FLYWHEEL_A_PORT 14
 #define FLYWHEEL_PORT 2
 #define ROLLER_PORT 18
 
@@ -58,7 +60,7 @@ static constexpr double track_wheel_size = 0.00609556241;
 // Distance from back tracking wheel to center of robot
 static constexpr double back_track_offset = 150;
 // The angle the robot is facing
-static constexpr double start_theta = 180;
+static constexpr double start_theta = 270;
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -66,7 +68,7 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 1524, y_loc = 3480;
+double x_loc = 1385, y_loc = 3238;
 // Variable to keep track of the Orientation of the Robot
 double theta;
 
@@ -84,12 +86,13 @@ pros::Controller controller(pros::E_CONTROLLER_MASTER);
 pros::Motor chassis_r1(CHASSIS_R1_PORT, true);
 pros::Motor chassis_r2(CHASSIS_R2_PORT, true);
 pros::Motor chassis_r3(CHASSIS_R3_PORT, true);
+pros::Motor chassis_r4(CHASSIS_R4_PORT);
 pros::Motor chassis_l1(CHASSIS_L1_PORT);
 pros::Motor chassis_l2(CHASSIS_L2_PORT);
 pros::Motor chassis_l3(CHASSIS_L3_PORT);
+pros::Motor chassis_l4(CHASSIS_L4_PORT, true);
 pros::Motor intake(INTAKE_PORT, true);
-pros::Motor flywheel(FLYWHEEL_PORT);
-pros::Motor flywheel_angle(FLYWHEEL_A_PORT, true);
+pros::Motor flywheel(FLYWHEEL_PORT, true);
 pros::Motor roller(ROLLER_PORT);
 
 // Define Pistons
@@ -103,6 +106,28 @@ pros::ADIPotentiometer flywheel_potentiometer(FLYWHEEL_POTENTIOMETER_PORT);
 pros::IMU gyro(GYRO_PORT);
 pros::Optical color(COLOR_PORT);
 
+
+/**
+ * Gets the distance between two points
+ * 
+ * @param x0 the x coordinate of the first point
+ * @param y0 the y coordinate of the first point
+ * @param x1 the x coordinate of the second point
+ * @param y1 the y coordinate of the second point
+ */
+double get_distance(double x0, double y0, double x1, double y1) {
+	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
+}
+
+
+/**
+ * Gets the distance from the robot to the goal
+ *
+ * @return the distance in mm between the robot and the goal
+ */
+double get_goal_distance() {
+	return get_distance(x_loc, y_loc, goal_x, goal_y);
+}
 
 /**
  * Task keeps track of the location and heading of the robot
@@ -134,13 +159,18 @@ int odometry() {
 
 		// Stores current sensor values to previous variables for use in next iteration
 		prev_track_forward = track_forward;
-		prev_track_side = track_side; 
+		prev_track_side = track_side;
 
 		// Delay so that other tasks can run
 		pros::delay(10);
 
-		pros::lcd::set_text(0, "x: " + std::to_string(x_loc) + " y: " + std::to_string(y_loc));
-		pros::lcd::set_text(1, "theta: " + std::to_string(theta));
+		pros::lcd::set_text(0, 
+		"x: " + std::to_string((int)(x_loc*mm_to_inch)) + 
+		"    y: " + std::to_string((int)(y_loc*mm_to_inch)) + 
+		"    theta: " + std::to_string((int)theta));
+
+		// Calculate flywheel speed based on position and angle
+		flywheel_target = 0.04049 * get_goal_distance() + 97.61662;
 	}
 	return 0;
 }
@@ -153,110 +183,42 @@ int odometry() {
  * Uses PID to get to desired speed as quickly as possible
  */
 int drive () {
-	// The actual voltage for the left and right sides of the chassis
-	int voltage_al = 0, voltage_ar = 0;
-	// The target speed for the left and right sides of the chassis
-	int speed_l, speed_r;
-	// The voltage needed to maintain the speed of the left or right side of the chassis
-	int voltage_ml, voltage_mr;
-	// The target voltage for the left and right side of the chassis
-	int voltage_tl, voltage_tr;
-	// The error, previous error and total error for the left side of the chassis
-	int error_l, prev_error_l = 0, total_error_l = 0;
-	// The error, previous error and total error for the right side of the chassis
-	int error_r, prev_error_r = 0, total_error_r = 0;
-	// The constant for the pid loop
-	const int kp = 25, kd = 20, ki = 1;
-	// The maximum slew rate; variable based on direction robot is traveling to prevent tipping
-	int slew;
 	// Main control loop
+	int left_speed = 0;
+	int right_speed = 0;
+	const int slew = 60;
+	const int slew_f = 40;
 	while (true) {
-		// Set speed of left and right side of chassis based on tank drive controls 
-		speed_l = left_target*210/127;
-		speed_r = right_target*210/127;
+		if (chassis_l1.get_actual_velocity() + slew_f < left_target) {
+			left_speed = chassis_l1.get_actual_velocity() + slew_f;
+		} else if (chassis_l1.get_actual_velocity() - slew > left_target) {
+			left_speed = chassis_l1.get_actual_velocity() - slew;
+		} else {
+			left_speed = left_target;
+		}
 
-		// Calculate the error between the target velocity and true velocity
-		error_l = speed_l - chassis_l1.get_actual_velocity();
-		error_r = speed_r - chassis_r1.get_actual_velocity();
+		if (chassis_r1.get_actual_velocity() + slew_f < right_target) {
+			right_speed = chassis_r1.get_actual_velocity() + slew_f;
+		} else if (chassis_r1.get_actual_velocity() - slew > right_target) {
+			right_speed = chassis_r1.get_actual_velocity() - slew;
+		} else {
+			right_speed = right_target;
+		}
 
-		// Accumulate small errors to correct for differences between theoretical and
-		// experimental voltage to velocity correlations
-		if (abs(error_l) < 5) total_error_l += error_l;
-		if (abs(error_r) < 5) total_error_r += error_r;
-
-		// Calculate the voltage needed to maintain the desired velocity
-		voltage_ml = speed_l*50 + (speed_l < 0 ? -1250 : 1250);
-		voltage_mr = speed_r*50 + (speed_r < 0 ? -1250 : 1250);
-
-		// If voltage would be too small to move motor then set voltage to zero
-		voltage_ml = abs(speed_l) > 15 ? voltage_ml : 0;
-		voltage_mr = abs(speed_r) > 15 ? voltage_mr : 0;
-
-		// Calculate Target velocity using the maintenance velocity as a base line and a PID
-		// controller to reach that velocity
-		
-		voltage_tl = voltage_ml + kp*error_l + kd*(prev_error_l - error_l);
-		voltage_tr = voltage_mr + kp*error_r + kd*(prev_error_r - error_r);
-
-		// Set previous error to current error for next iteration
-		prev_error_l = error_l;
-		prev_error_r = error_r;
-
-
-		// Move actual voltage towards target voltage by an increment no greater than the slew rate
-		slew = std::signbit(voltage_al - voltage_tl) && std::signbit(voltage_ar - voltage_tr) ? 300 :800;
-
-		if (abs(voltage_al - voltage_tl) <= slew) voltage_al = voltage_tl;
-		else voltage_al += std::signbit(voltage_al - voltage_tl) ? slew : -slew;
-		if (abs(voltage_ar - voltage_tr) <= slew) voltage_ar = voltage_tr;
-		else voltage_ar += std::signbit(voltage_ar - voltage_tr) ? slew : -slew;
-
-		// Make sure actual voltage lies between -12000 and 12000 mv
-		if (voltage_al > 12000) voltage_al = 12000;
-		else if (voltage_al < -12000) voltage_al = -12000;
-		if (voltage_ar > 12000) voltage_ar = 12000;
-		else if (voltage_ar < -12000) voltage_ar = -12000;
-
-		// Set motor to actual voltage
-		chassis_l1.move_voltage(voltage_al);
-		chassis_l2.move_voltage(voltage_al);
-		chassis_l3.move_voltage(voltage_al);
-		chassis_r1.move_voltage(voltage_ar);
-		chassis_r2.move_voltage(voltage_ar);
-		chassis_r3.move_voltage(voltage_ar);
-
+		chassis_l1.move_velocity(left_speed);
+		chassis_l2.move_velocity(left_speed);
+		chassis_l3.move_velocity(left_speed);
+		chassis_l4.move_velocity(left_speed*3/5);
+		chassis_r1.move_velocity(right_speed);
+		chassis_r2.move_velocity(right_speed);
+		chassis_r3.move_velocity(right_speed);
+		chassis_r4.move_velocity(right_speed*3/5);
 		// Delay for other tasks to run
-		pros::delay(10);
+		pros::delay(20);
 	}
 	return 0;
 }
 
-/**
- * Gets the distance between two points
- * 
- * @param x0 the x coordinate of the first point
- * @param y0 the y coordinate of the first point
- * @param x1 the x coordinate of the second point
- * @param y1 the y coordinate of the second point
- */
-double get_distance(double x0, double y0, double x1, double y1) {
-	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1)) * ((x0 < x1 || (x0 == x1 &&y0<y1)) ? -1 : 1);
-}
-
-double get_distance_drive_forward(double x0, double y0, double x1, double y1) {
-	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
-}
-
-/**
- * Gets the distance from the robot to the goal
- *
- * @return the distance in mm between the robot and the goal
- */
-double get_goal_distance() {
-	return get_distance(x_loc, y_loc, goal_x, goal_y);
-}
-
-bool up = false;
 /**
  * Task to control flywheel speed using take back half algorithm
  */
@@ -284,7 +246,7 @@ int flywheel_task () {
 		// Prevent exceeding maximum voltage to not cause errors in calculations
 		if (output > 12000) output = 12000;
 
-		pros::lcd::set_text(5, "flywheel: " + std::to_string(flywheel.get_actual_velocity()));
+		// pros::lcd::set_text(5, "flywheel: " + std::to_string(flywheel.get_actual_velocity()));
 
 		// Set Flywheel speed to calculated value
 		flywheel.move_voltage(output);
@@ -295,66 +257,18 @@ int flywheel_task () {
 	return 0;
 }
 
-/**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
- */
 void initialize() {
 	
-
+	pros::lcd::initialize();
 	// Delay to allow calibration of sensors
 	pros::delay(3000);
 	// Initialize lcd for debugging
-	pros::lcd::initialize();
+	
 
 
 	pros::Task drive_task(drive);
 	pros::Task odometry_task(odometry);
 	pros::Task run_flywheel_task(flywheel_task);
-
-
-	flywheel_angle.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
-	
-}
-
-/**
- * Turn desired angle
- * 
- * Function is blocking
- * @param deg the number of degrees to turn
- */
-void turn( double deg) {
-	// Get initial position 
-	double initial_angle = gyro.get_rotation();
-
-	// the difference between the desired position and the current distance
-	double error = deg, prev_error;
-	// accumulate total error to correct for it, 
-	// If the error is really small, start with a larger total error because kp will not do enough
-	double total_error = fabs(deg) < 10 ? deg*50 : 0;
-	// The precision in degrees required to exit the loop
-	const double threshold = 1;
-	// The constants tuned for PID
-	const double kp = 2.25, ki = 0.05, kd = 2;
-
-	
-	// PID control loop
-	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
-		prev_error = error;
-		error = deg - (gyro.get_rotation() - initial_angle);
-		total_error += (fabs(error) < 2 ? error : 0);
-
-		left_target = -kp * error - kd * (error - prev_error) - ki * total_error;
-		right_target = kp * error + kd * (error - prev_error) + ki * total_error;
-		pros::delay(10);
-		if (controller.get_digital(DIGITAL_B))
-			break;
-	}
-	// Zero out motors so the robot does not continue moving
-	left_target = 0;
-	right_target = 0;
 }
 
 /**
@@ -363,8 +277,31 @@ void turn( double deg) {
  *
  * @param angle the angle that the robot should turn to
  */
-void turn_to_angle(double angle) {
-	turn(fmod(fmod(fmod(fmod(theta, 360)+360,360) - angle,180)+180,180));
+void turn_to(double angle) {
+	double error = -180 +fmod((angle+180-(fmod(theta, 360))),360);
+	double prev_error;
+	double total_error = 0;
+	// The precision in degrees required to exit the loop
+	const double threshold = 1;
+	// The constants tuned for PID
+	const double kp = 1, ki = 0.05, kd = 2;
+
+	// PID control loop
+	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
+		prev_error = error;
+		error = -180 + fmod((angle + 180 - (fmod(theta, 360))), 360);
+		total_error += (fabs(error) < 2 ? error : 0);
+
+		pros::lcd::set_text(2, "error: " + std::to_string(error));
+
+		left_target = -kp * error - kd * (error - prev_error) - ki * total_error;
+		right_target = kp * error + kd * (error - prev_error) + ki * total_error;
+		pros::delay(10);
+	}
+	// Zero out motors so the robot does not continue moving
+	left_target = 0;
+	right_target = 0;
+
 }
 
 /**
@@ -372,23 +309,7 @@ void turn_to_angle(double angle) {
  * Calculates the angle to turn based on odometry and uses the built in turn function to face the goal
  */
 void turn_to_goal() {
-	// Difference in y values between the robot and goal in mm
-	double y = y_loc - goal_y;
-	// Difference in x values between the robot and goal in mm
-	double x = x_loc - goal_x;
-
-	pros::lcd::set_text(3, "angle to face: " + std::to_string(atan(y/x)));
-	pros::lcd::set_text(4, "angle to face: " + std::to_string(atan(y/x)*radian_to_degree));
-
-	// Heading between -180 and 180 for the direction that the robot needs to be facing at the given
-	// point to be facing the goal
-	double target_theta = fmod(((x > 0 ? 0 : pi) - atan((x_loc - goal_x)/(y_loc - goal_y))),2*pi)*radian_to_degree - fmod(theta, 360);
-
-	//turn(fmod(target_theta, 360));
-
-	// Theoretically correct though untested
-	turn_to_angle(((x > 0 ? 0 : pi) - atan((x_loc - goal_x)/(y_loc - goal_y))));
-
+	turn_to((atan((y_loc - goal_y)/(goal_x - x_loc))+(x_loc < goal_x ? pi : 0))*radian_to_degree);
 }
 
 /**
@@ -398,15 +319,6 @@ void turn_to_goal() {
  */
 void disabled() {}
 
-/**
- * Runs after initialize(), and before autonomous when connected to the Field
- * Management System or the VEX Competition Switch. This is intended for
- * competition-specific initialization routines, such as an autonomous selector
- * on the LCD.
- *
- * This task will exit when the robot is enabled and autonomous or opcontrol
- * starts.
- */
 void competition_initialize() {}
 
 /**
@@ -420,25 +332,29 @@ void drive_forward(int distance) {
 	// Get initial position 
 	const int target = tracking_forward.get_position() + distance/track_wheel_size;
 	// the difference between the desired position and the current distance
-	double error = distance;
+	double error = target - tracking_forward.get_position();
 	double prev_error;
 	// accumulate total error to correct for it
 	double total_error = 0;
-	// The precision in degrees required to exit the loop
-	const double threshold = 15;
+	// The precision in mm
+	const double threshold = 1;
 	// The constants tuned for PID
 	const double kp = .002, ki = 0.005, kd = .000000001;
 	// PID control loop
-	while (error > 0) {
+	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
 
 		error = target - tracking_forward.get_position();
 		
-		total_error += (fabs(error) < 5000 ? error : 0);
+		total_error += (fabs(error) < 1000 ? error : 0);
+		pros::lcd::set_text(1, "prev error: " + std::to_string((int)prev_error) + "       " + std::to_string(prev_error*track_wheel_size*mm_to_inch));
+		pros::lcd::set_text(2, "error:      " + std::to_string((int)error) + "       " + std::to_string(error*track_wheel_size*mm_to_inch));
+		pros::lcd::set_text(3, "speed: " + std::to_string(left_target));
+		pros::lcd::set_text(4, "threshold: " + std::to_string(threshold/track_wheel_size));
 
-		pros::lcd::set_text(2,std::to_string(error));
-		
+
 		left_target = kp * error + kd * (error - prev_error) + ki * total_error;
+		left_target = abs(left_target) > 180 ? 180*(left_target > 0 ? 1:-1) : left_target;
 		right_target = left_target;
 		pros::delay(10);
 	}
@@ -453,24 +369,17 @@ void drive_forward(int distance) {
  * @param speed the speed the flywheel should shoot at
  * @param count the number of times the robot should shoot at that speed
  */
-void shoot(int speed, int count) {
-	// Set flywheel target to desired speed
-	flywheel_target = speed;
-	up = true;
+void shoot(int count) {
 	// Wait until flywheel is at desired speed
 	for (; count > 0; count--) {
 		while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
-		up = false;
 		// Shoot
 		indexer.set_value(true);
 		pros::delay(100);
 		indexer.set_value(false);
 		pros::delay(300);
 	}
-
-	
 	pros::delay(300);
-
 }
 
 /**
@@ -530,11 +439,24 @@ void run_roller(){
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {
-	drive_forward(24*inch_to_mm);
-	turn(24);
-	shoot(190, 2);
+void autonomous() {	
+	
 
+
+	
+	turn_to_goal();
+	drive_forward(24*inch_to_mm);
+	shoot(2);
+	turn_to(315);
+	intake.move_velocity(200);
+	drive_forward(44*inch_to_mm);
+	turn_to_goal();
+	shoot(3);
+	turn_to(315);
+	drive_forward(44*inch_to_mm);
+	turn_to_goal();
+	shoot(3);
+	
 }
 
 
@@ -557,6 +479,7 @@ void opcontrol() {
 	bool endgame_flag = false;
 	// variable to speed up or slow down flywheel based on user needs
 	int flywheel_offset = 0;
+	int y_joystick = 0, x_joystick = 0;
 	// Variables to calculate chassis speed when using arcade drive
 	int power, turn;
 	// Main Control Loop
@@ -588,19 +511,6 @@ void opcontrol() {
 		// pros::lcd::set_text(0, "angle: " + std::to_string((flywheel_potentiometer.get_angle())));
 		// pros::lcd::set_text(1, "speed: " + std::to_string(flywheel.get_actual_velocity()));
 		
-
-
-        // Allow user to manually adjust flywheel speed
-		// if (controller.get_digital_new_press(DIGITAL_LEFT)) { 
-		// 	flywheel_offset -= 1;
-		// }
-        // if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
-		// 	flywheel_offset += 1;
-		// }
-
-		// Calculate flywheel speed based on position and angle
-		flywheel_target = 0.04049 * get_goal_distance() + 97.61662 +flywheel_offset;
-		
 		
 		// Roller code
 
@@ -622,10 +532,13 @@ void opcontrol() {
          * Increases and reduces power of left and right sides of the chassis based on the horizontal
          * value of the left joystick. Respectively turns chassis left and right based on value.
          */ 
-		//power = controller.get_analog(ANALOG_LEFT_Y); 
-		//turn = controller.get_analog(ANALOG_LEFT_X); 
-		//right_target = power + turn; 
-		//left_target = power - turn; 
+		y_joystick = controller.get_analog(ANALOG_LEFT_Y);
+		x_joystick = controller.get_analog(ANALOG_LEFT_X);
+
+		power = abs(y_joystick) > 8 ? (y_joystick-std::signbit(y_joystick)*8)*200/119 : 0;
+		turn = abs(x_joystick) > 8 ? (x_joystick-std::signbit(x_joystick)*8)*200/119 : 0; 
+		right_target = power + turn;
+		left_target = power - turn;
  
 		/** 
          * Base Tank Controls 
@@ -636,27 +549,16 @@ void opcontrol() {
          * Joystick has a small deadzone to prevent accidental movements when 
          * the joysticks are not perfectly centered
          */ 
-		left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? controller.get_analog(ANALOG_RIGHT_Y) : 0; 
-		right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? controller.get_analog(ANALOG_LEFT_Y) : 0; 
+		// left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? (controller.get_analog(ANALOG_RIGHT_Y)-8)*200/119 : 0; 
+		// right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? (controller.get_analog(ANALOG_LEFT_Y)-8)*200/119 : 0; 
 		
 		
 
 
 		// Turn to goal when X pressed on the controller
-		if (controller.get_digital(DIGITAL_X)) {
+		if (controller.get_digital_new_press(DIGITAL_X)) {
 			turn_to_goal();
 		}
-
-		if (controller.get_digital_new_press(DIGITAL_LEFT)) {
-			flywheel_target -= 1;
-		}
-		if (controller.get_digital_new_press(DIGITAL_RIGHT)) {
-			flywheel_target += 1;
-		}
-
-
-		pros::lcd::set_text(0, "speed: " + std::to_string(flywheel.get_actual_velocity()));
-		pros::lcd::set_text(1, "target: " + std::to_string(flywheel_target));
 
 		if (controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_RIGHT) ) {
 			endgame_flag = !endgame_flag;
@@ -664,6 +566,8 @@ void opcontrol() {
 			endgame.set_value(endgame_flag);
 			pros::delay(500);
 		}
+		
+
 		
 		
 
