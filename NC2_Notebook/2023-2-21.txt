@@ -1,0 +1,6 @@
+Changelog
+
+Updated optical sensor ports to 12 and 13
+Made the roller speed slower and added ternary statements to toggle between the two optical sensors
+
+Tuned PID values
