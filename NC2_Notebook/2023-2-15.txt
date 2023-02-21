@@ -1,0 +1,19 @@
+Changelog
+
+Added 8 drivebase motors
+Added 2 catapult motors
+Added 2 intake motors
+Added a gyro and Limit switch
+
+Set the brake mode for catapult to hold
+Set the brake mode for intake to coast
+Made a drive task for the driver control to control the drive base using tank controls
+    This also has a deadzone with low speeds still included because of the fraction
+The Limit switch is used to let the brain know when the catapult is down and ready to fire
+    if limit is activated, stop catapult
+    if limit not activated then move catapult until limit is activated
+
+If User clicks R1 it with fire catapult and fall back into the limit switch loop to reload catapult
+
+If user clicks L1 it move intake one direction, L2 moves it in the other direction, else it will brake
+

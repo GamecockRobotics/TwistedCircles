@@ -1,5 +1,6 @@
 #include "main.h"
 #include "gui.h"
+#include "pros/misc.h"
 #include "pros/motors.hpp"
 
 
@@ -33,7 +34,7 @@ pros::Motor chassis_R4(CHASSIS_R4_PORT, true);
 // pros::Motor intake_2(INTAKE2_PORT,true);
 // pros::Motor roller(ROLLER_PORT);
 pros::Motor catapult_L(CATA_L_PORT);
-pros::Motor catapult_R(CATA_R_PORT);
+pros::Motor catapult_R(CATA_R_PORT, true);
 
 //Declaring sensors and pneumatics
 pros::Imu gyro (GYRO_PORT);
@@ -189,9 +190,20 @@ void opcontrol() {
 	
 	pros::Task drive(driveTask);
 	while (true) {
-		if(controller.get_digital(DIGITAL_A) || catapultTarget != 0){
-			shoot();
-			intakeFlag = false;
+		// if(controller.get_digital(DIGITAL_A) || catapultTarget != 0){
+		// 	shoot();
+		// 	intakeFlag = false;
+		// }
+
+		if(controller.get_digital(DIGITAL_A)){
+			catapult_L= 127;
+			catapult_R= 127;
+		} else if (controller.get_digital(DIGITAL_B)) {
+			catapult_L= -127;
+			catapult_R= -127;
+		} else {
+			catapult_L = 0;
+			catapult_R = 0;
 		}
 	}
 }
