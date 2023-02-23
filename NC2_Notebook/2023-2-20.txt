@@ -1,0 +1,13 @@
+Change log
+
+Added two pistons to switch from long range shooting to short range shooting
+Added a function called rangeSwitchToggle to activate pistons in auton
+They were added to ports a and b
+
+Switched the intake motor speed to 100 instead of full speed because intake was to fast
+
+Added 2 optical sensors for each side of the rollers
+These were added to ports 17 and 16
+Added an autonmous function called roller to automatically flip the roller to the correct side
+
+Adding a PID function for turning the robot

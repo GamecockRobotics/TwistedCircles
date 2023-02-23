@@ -10,8 +10,8 @@
 #define CATAR_PORT 20
 #define GYRO_PORT 18
 #define LIMIT_PORT 'g'
-#define VISION1_PORT 13
-#define VISION2_PORT 12
+#define VISION1_PORT 17
+#define VISION2_PORT 16
 #define RANGE_SWITCH1_PORT 'a' // These are pistons
 #define RANGE_SWITCH2_PORT 'b' // These are pistons
 #define CHASSIS_L1_PORT 7      // top front motor
@@ -26,7 +26,6 @@
 enum color { red, blue };
 enum opticalType { rightSen, leftSen };
 enum turnType {right, left};
-enum intakeSetting{on, off};
 // declaring motors
 pros::Motor chassis_r1(CHASSIS_R1_PORT, true);
 pros::Motor chassis_r2(CHASSIS_R2_PORT, true);
@@ -118,24 +117,12 @@ void rangeSwitchToggle(bool rangeToggle) {
   rangeSwitch2.set_value(rangeToggle);
 }
 
-void intakeSetting(intakeSetting setting) {
-    // Turns intake either on or off
-    if (setting == off) {
-        intake_1 = 0;
-        intake_2 = 0;
-    }
-    else if (setting == on) {
-        intake_1 = -112;
-        intake_2 = -112;
-    }
-}
-
 color get_color(double hue) {
   // Returns red or blue based off of the hue value seen by the vision sensor
   return (hue > 300 || hue < 20) ? red : blue;
 }
 
-void runRoller(int speed = 40, opticalType type = rightSen) {
+void runRoller(int speed = 75, opticalType type = rightSen) {
   // Scores roller if the roller is at competition start position
   // Turns on flashlight
   type == rightSen ? vision1.set_led_pwm(100) : vision2.set_led_pwm(100);
@@ -181,32 +168,6 @@ void runRoller(int speed = 40, opticalType type = rightSen) {
   type == rightSen ? vision1.set_led_pwm(0) : vision2.set_led_pwm(0);
 }
 
-void drive(int power, float distance){
-    // Resets motor position to ensure accuracy in autonomous
-    tareMotors();
-    // Drives specified distance
-    // Multiplies distance by the conversion factor for inches
-	chassis_l1.move_absolute(distance*13.37*2.5 - 5, power);
-	chassis_l2.move_absolute(distance*13.37*2.5 - 5, power);
-	chassis_l3.move_absolute(distance*13.37*2.5 - 5, power);
-	chassis_l4.move_absolute(distance*13.37*2.5 - 5, power);
-	chassis_r1.move_absolute(distance*13.37*2.5, power);
-	chassis_r2.move_absolute(distance*13.37*2.5, power);
-	chassis_r3.move_absolute(distance*13.37*2.5, power);
-	chassis_r4.move_absolute(distance*13.37*2.5, power);
-	pros::lcd::set_text(3, "driving");
-    // Waits a second to allow motors to build speed
-	pros::delay(1000);
-    // Continue running this loop as long as the motor is moving, locking the program in the function
-	while (!(chassis_l1.get_actual_velocity() == 0)) {
-        pros::delay(10);
-        // Prints motor voltage values
-		pros::lcd::set_text(4, std::to_string((chassis_l1.get_voltage()+chassis_l2.get_voltage()+chassis_l3.get_voltage()+chassis_l4.get_voltage())/4));
-		pros::lcd::set_text(5, std::to_string((chassis_r1.get_voltage()+chassis_r2.get_voltage()+chassis_r3.get_voltage()+chassis_r4.get_voltage())/4));
-    }
-	pros::lcd::set_text(3, "done driving");
-}
-
 void turn(int32_t deg, double precision) {
     // PID loop to control turning
     /* 
@@ -224,9 +185,9 @@ void turn(int32_t deg, double precision) {
     float prevError = error;
     float totalError = 0;
     const float threshold = precision;
-    const float kp = 1.25; //was 1.4
-    const float ki = 0.9; //was .3
-    const float kd = .78; //was .78
+    const float kp = 1.45; //was 1.4
+    const float ki = .7; //was .3
+    const float kd = .78; //was .8
     std::string first = std::to_string(gyro.get_rotation());
     pros::lcd::set_text(7, "");
     pros::lcd::set_text(4, "Gyro Value: " + first);
@@ -266,63 +227,7 @@ void turn(int32_t deg, double precision) {
     chassis_l4.brake();
 }
 
-void autonomous() {
-  int cataFlag;
-    // For testing turn
-    gyro.set_rotation(0);
-    while(gyro.is_calibrating()) {
-        pros::delay(10);
-    };
-
-    while (!SlipGearSensor.get_value()) {
-        cataL.move_velocity(600);
-        cataR.move_velocity(600);
-        pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-    }
-
-            cataL.brake();
-            cataR.brake();
-
-  // Competition auton
-    // Get First roller
-    drive(20, -15);
-    pros::delay(200);
-    drive(40, 2);
-    pros::delay(200);
-    runRoller();
-    // Drive to second roller
-    pros::delay(200);
-    drive(20, 5);
-    pros::delay(200);
-    turn(-89, 1);
-    intakeSetting(on);
-    pros::delay(200);
-    drive(50, -50);
-    pros::delay(50);
-    turn(-90, 1);
-    pros::delay(50);
-    drive(40, -70);
-    pros::delay(200);
-    drive(30, 5);
-    pros::delay(200);
-    turn(-180, 6);
-    pros::delay(200);
-    drive(20, 30);
-    pros::delay(400);
-    drive(50, -99);
-    pros::delay(200);
-    intakeSetting(off);
-    // Get second roller
-    turn(-90, 1);
-    pros::delay(200);
-    drive(40, -15);
-    pros::delay(200);
-    drive(40, 2);
-    pros::delay(200);
-    runRoller();
-    pros::delay(200);
-
-}
+void autonomous() {}
 
 /**
  * Runs the operator control code. This function will be started in its own task
