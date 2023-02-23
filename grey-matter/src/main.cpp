@@ -332,7 +332,7 @@ void competition_initialize() {}
  * 
  * @param distance the distance to travel in mm
  */
-void drive_forward(int distance) {
+void drive_forward(int distance, int max_speed = 180) {
 
 	// Get initial position 
 	const int target = tracking_forward.get_position() + distance/track_wheel_size;
@@ -359,7 +359,7 @@ void drive_forward(int distance) {
 
 
 		left_target = kp * error + kd * (error - prev_error) + ki * total_error;
-		left_target = abs(left_target) > 180 ? 180*(left_target > 0 ? 1:-1) : left_target;
+		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
 		right_target = left_target;
 		pros::delay(10);
 	}
