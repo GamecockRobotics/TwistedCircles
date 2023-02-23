@@ -231,7 +231,7 @@ int flywheel_task () {
 	int output = 0;
 	// Control loop for flywheel
 	while (true) {
-		// calculate differencec in desired speed
+		// calculate differences in desired speed
 		error = flywheel_target - flywheel.get_actual_velocity();
 
 		// accumulate voltage to get to good speed
@@ -344,7 +344,7 @@ void drive_forward(int distance) {
 	// The precision in mm
 	const double threshold = 1;
 	// The constants tuned for PID
-	const double kp = .002, ki = 0.005, kd = .000000001;
+	const double kp = .001, ki = 0.005, kd = .000000001;
 	// PID control loop
 	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
@@ -438,26 +438,42 @@ void run_roller(){
  * with the default priority and stack size whenever the robot is enabled via
  * the Field Management System or the VEX Competition Switch in the autonomous
  * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competitiofn testing purposes.
+ * for non-competition testing purposes.
  *
  * If the robot is disabled or communications is lost, the autonomous task
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
 void autonomous() {	
-
-	turn_to_goal();
-	drive_forward(24*inch_to_mm);
+//turns to goal and shoots
+	turn_to(285);
+	drive_forward(11*inch_to_mm);
 	shoot(2);
-	turn_to(315);
-	intake.move_velocity(200);
-	drive_forward(44*inch_to_mm);
-	turn_to_goal();
+//turns backwards to intake, angles next position
+	turn_to(45);
+//pick up the three discs and shoots
+	intake.move_velocity(176);
+//backwards movement
+	drive_forward(-44*inch_to_mm);
+	//aims at goal again
+	turn_to(325);
+	//gives downtime to move into position
+	pros::delay(500);
 	shoot(3);
+
+
+
+
+	/**
+
 	turn_to(315);
 	drive_forward(44*inch_to_mm);
-	turn_to_goal();
-	shoot(3);
+	shoot(3); 
+	notes -
+	knock over the nearby three stack and then grab them nad shoot at the goal
+	if that doesnt work, grab the nearest three by the goal and shoot
+	adjust the movement speed after function is fixed
+	**/
 	
 }
 
