@@ -19,7 +19,7 @@ void initialize() {
 
 	pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
 
-	//pros::Mutex maplock = pros::Mutex();
+	pros::Mutex maplock = pros::Mutex();
 }
 
 void disabled() {}
@@ -43,7 +43,7 @@ void opcontrol() {
 	for(int i = 65; i <= 100000; ){
 		
 		
-		std::cout << "Creamy Cocks \n";
+		std::cout << "Creamier Cocks \n";
 
 		std::string thingggggg = std::to_string(i);
 		pros::lcd::set_text(4, thingggggg);
