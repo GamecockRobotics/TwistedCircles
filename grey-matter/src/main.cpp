@@ -187,7 +187,7 @@ int drive () {
 	int left_speed = 0;
 	int right_speed = 0;
 	const int slew = 60;
-	const int slew_f = 40;
+	const int slew_f = 35;
 	while (true) {
 		if (chassis_l1.get_actual_velocity() + slew_f < left_target) {
 			left_speed = chassis_l1.get_actual_velocity() + slew_f;
@@ -249,7 +249,9 @@ int flywheel_task () {
 		// pros::lcd::set_text(5, "flywheel: " + std::to_string(flywheel.get_actual_velocity()));
 
 		// Set Flywheel speed to calculated value
-		flywheel.move_voltage(output);
+		// flywheel.move_voltage(output);
+
+		flywheel.move_velocity(flywheel_target);
 
 		// Delay so other processes can run
 		pros::delay(10);
@@ -309,8 +311,11 @@ void turn_to(double angle) {
  * Calculates the angle to turn based on odometry and uses the built in turn function to face the goal
  */
 void turn_to_goal() {
-	turn_to((atan((y_loc - goal_y)/(goal_x - x_loc))+(x_loc < goal_x ? pi : 0))*radian_to_degree);
+	pros::lcd::set_text(4, "x: " + std::to_string(x_loc - goal_x) + "    " + "x: " + std::to_string(y_loc - goal_y));
+	pros::lcd::set_text(5, "target theta " + std::to_string((atan((y_loc - goal_y)/(goal_x - x_loc)) +(x_loc < goal_x ? pi : 0))*radian_to_degree));
+	turn_to((atan((y_loc - goal_y)/(goal_x - x_loc)) +(x_loc < goal_x ? pi : 0))*radian_to_degree);
 }
+
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -440,10 +445,7 @@ void run_roller(){
  * from where it left off.
  */
 void autonomous() {	
-	
 
-
-	
 	turn_to_goal();
 	drive_forward(24*inch_to_mm);
 	shoot(2);
