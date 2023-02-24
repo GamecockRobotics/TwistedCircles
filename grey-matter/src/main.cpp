@@ -446,29 +446,34 @@ void run_roller(){
  */
 void autonomous() {	
 //turns to goal and shoots
-	turn_to(285);
-	drive_forward(11*inch_to_mm);
+	turn_to(286);
+	drive_forward(9*inch_to_mm);
+	pros::delay(500);
 	shoot(2);
+	pros::delay(500);
 //turns backwards to intake, angles next position
 	turn_to(45);
+	pros::delay(500);
 //pick up the three discs and shoots
-	intake.move_velocity(176);
-//backwards movement
-	drive_forward(-44*inch_to_mm);
+	intake.move_velocity(180);
+//backwards movement, max speed is 180
+//100 max speed and around 178 velocity is good for intake!
+	drive_forward(-45*inch_to_mm, 90);
 	//aims at goal again
 	turn_to(325);
 	//gives downtime to move into position
 	pros::delay(500);
 	shoot(3);
-
+	pros::delay(500);
+	turn_to(45);
+	/**
+	drive_forward(-14*inch_to_mm, 100);
+*/
 
 
 
 	/**
 
-	turn_to(315);
-	drive_forward(44*inch_to_mm);
-	shoot(3); 
 	notes -
 	knock over the nearby three stack and then grab them nad shoot at the goal
 	if that doesnt work, grab the nearest three by the goal and shoot
