@@ -12,8 +12,8 @@
 #define LIMIT_PORT 'g'
 #define VISION1_PORT 13
 #define VISION2_PORT 12
-#define RANGE_SWITCH1_PORT 'a' // These are pistons
-#define RANGE_SWITCH2_PORT 'b' // These are pistons
+#define RANGE_SWITCH_PORT 'h' // These are pistons
+#define ENDGAME_PORT 'f' // These are pistons
 #define CHASSIS_L1_PORT 7      // top front motor
 #define CHASSIS_L2_PORT 8      // Top back motor
 #define CHASSIS_L3_PORT 9      // bottom front motor
@@ -43,12 +43,14 @@ pros::Motor intake_1(INTAKEL_PORT, true);
 pros::Motor intake_2(INTAKER_PORT);
 
 pros::ADIDigitalIn SlipGearSensor(LIMIT_PORT);
-pros::ADIDigitalOut rangeSwitch1(RANGE_SWITCH1_PORT);
-pros::ADIDigitalOut rangeSwitch2(RANGE_SWITCH2_PORT);
+pros::ADIDigitalOut rangeSwitch(RANGE_SWITCH_PORT);
+pros::ADIDigitalOut endgame(ENDGAME_PORT);
 pros::Optical vision1(VISION1_PORT);
 pros::Optical vision2(VISION2_PORT);
 pros::Imu gyro(GYRO_PORT);
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
+
+bool endgameState = true;
 
 void tareMotors(){
     // Resets all drive train motor positions to 0
@@ -80,6 +82,7 @@ void initialize() {
   intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
   intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
 
+  endgame.set_value(false);
   tareMotors();
 }
 
@@ -114,8 +117,7 @@ void competition_initialize() {}
  */
 
 void rangeSwitchToggle(bool rangeToggle) {
-  rangeSwitch1.set_value(rangeToggle);
-  rangeSwitch2.set_value(rangeToggle);
+  rangeSwitch.set_value(rangeToggle);
 }
 
 void intakeSetting(intakeSetting setting) {
@@ -285,42 +287,44 @@ void autonomous() {
 
   // Competition auton
     // Get First roller
-    drive(20, -15);
-    pros::delay(200);
-    drive(40, 2);
-    pros::delay(200);
-    runRoller();
-    // Drive to second roller
-    pros::delay(200);
-    drive(20, 5);
-    pros::delay(200);
-    turn(-89, 1);
-    intakeSetting(on);
-    pros::delay(200);
-    drive(50, -50);
-    pros::delay(50);
-    turn(-90, 1);
-    pros::delay(50);
-    drive(40, -70);
-    pros::delay(200);
-    drive(30, 5);
-    pros::delay(200);
-    turn(-180, 6);
-    pros::delay(200);
-    drive(20, 30);
-    pros::delay(400);
-    drive(50, -99);
-    pros::delay(200);
-    intakeSetting(off);
-    // Get second roller
-    turn(-90, 1);
-    pros::delay(200);
-    drive(40, -15);
-    pros::delay(200);
-    drive(40, 2);
-    pros::delay(200);
-    runRoller();
-    pros::delay(200);
+    // drive(20, -15);
+    // pros::delay(200);
+    // drive(40, 2);
+    // pros::delay(200);
+    // runRoller(45,leftSen);
+    // // Drive to second roller
+    // pros::delay(200);
+    // drive(20, 5);
+    // pros::delay(200);
+    // turn(-89, 1);
+    // intakeSetting(on);
+    // pros::delay(200);
+    // drive(50, -50);
+    // pros::delay(50);
+    // turn(-90, 1);
+    // pros::delay(50);
+    // drive(40, -70);
+    // pros::delay(200);
+    // drive(30, 5);
+    // pros::delay(200);
+    // turn(-180, 6);
+    // pros::delay(200);
+    // drive(20, 30);
+    // pros::delay(400);
+    // drive(50, -99);
+    // pros::delay(200);
+    // intakeSetting(off);
+    // // Get second roller
+    // turn(-90, 1);
+    // pros::delay(200);
+    // drive(40, -15);
+    // pros::delay(200);
+    // drive(40, 2);
+    // pros::delay(200);
+    // runRoller();
+    // pros::delay(200);
+    rangeSwitchToggle(true);
+    
 
 }
 
@@ -409,5 +413,17 @@ void opcontrol() {
       intake_1.brake();
       intake_2.brake();
     }
+
+    //String Launcher
+        
+        if(controller.get_digital(DIGITAL_RIGHT) && controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_DOWN)
+            && controller.get_digital(DIGITAL_LEFT) && controller.get_digital(DIGITAL_Y) && controller.get_digital(DIGITAL_X) 
+            && controller.get_digital(DIGITAL_B) && controller.get_digital(DIGITAL_A)){
+                endgame.set_value(endgameState);
+        }
+
+        if (condition) {
+        
+        }
   }
 }
