@@ -446,26 +446,28 @@ void run_roller(){
  */
 void autonomous() {	
 //turns to goal and shoots
-	turn_to(286);
-	drive_forward(9*inch_to_mm);
+	turn_to(286.5);
+	drive_forward(8.5*inch_to_mm);
 	pros::delay(500);
 	shoot(2);
 	pros::delay(500);
 //turns backwards to intake, angles next position
-	turn_to(45);
-	pros::delay(500);
+	turn_to(47);
+	pros::delay(250);
 //pick up the three discs and shoots
-	intake.move_velocity(180);
+	intake.move_velocity(157);
+	pros::delay(80);
 //backwards movement, max speed is 180
-//100 max speed and around 178 velocity is good for intake!
-	drive_forward(-45*inch_to_mm, 90);
+//80-95 max speed and around 150-160 velocity is good for slower and more accurate intake!
+	drive_forward(-47*inch_to_mm, 85);
+	pros::delay(125);
 	//aims at goal again
-	turn_to(325);
+	turn_to(327);
 	//gives downtime to move into position
-	pros::delay(500);
+	pros::delay(250);
 	shoot(3);
 	pros::delay(500);
-	turn_to(45);
+	turn_to(47);
 	/**
 	drive_forward(-14*inch_to_mm, 100);
 */
