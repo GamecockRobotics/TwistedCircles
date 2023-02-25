@@ -468,6 +468,7 @@ void autonomous() {
 	shoot(3);
 	pros::delay(500);
 	turn_to(47);
+}
 	/**
 	drive_forward(-14*inch_to_mm, 100);
 */
@@ -476,11 +477,7 @@ void autonomous() {
 
 	/**
 
-	notes -
-	knock over the nearby three stack and then grab them nad shoot at the goal
-	if that doesnt work, grab the nearest three by the goal and shoot
-	adjust the movement speed after function is fixed
-	**/
+
 	
 }
 
