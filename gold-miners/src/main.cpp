@@ -1,6 +1,10 @@
 #include "main.h"
+#include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.hpp"
+#include "pros/rtos.hpp"
+#include <chrono>
+#include <ctime>
 
 
 /**
@@ -9,7 +13,9 @@
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
-void initialize() { }
+void initialize() { 
+	pros::lcd::initialize();
+}
 
 /**
  * Runs while the robot is in the disabled state of Field Management System or
@@ -40,7 +46,19 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+	int start = clock();
+	pros::Motor fly(2);
+	
+	//while (elapsed_seconds.count() <= 10) {
+//		pros::delay(10);
+//	}
+	while (clock() < start+150){
+		pros::delay(10);
+	}
+
+	fly = 100;
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -57,13 +75,13 @@ void autonomous() {}
  */
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::Motor chassis_l1(1, true);
-	pros::Motor chassis_l2(2, true);
-	pros::Motor chassis_r1(8);
-	pros::Motor chassis_r2(10);
+	pros::Motor chassis_l1(21, true);
+	pros::Motor chassis_l2(10, true);
+	pros::Motor chassis_r1(3);
+	pros::Motor chassis_r2(4);
 
-	pros::Motor fly(20);
-	pros::Motor in(13);
+	pros::Motor fly(2);
+	pros::Motor in(1);
 
 	while (true) {
 		

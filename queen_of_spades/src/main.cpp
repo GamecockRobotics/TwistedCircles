@@ -435,6 +435,32 @@ void run_roller(){
 	color.set_led_pwm(0);
 }
 
+void run_roller2(){
+	// Turn on flashlight
+	color.set_led_pwm(100);
+	
+	// Drive forward into roller
+	left_target = -5;
+	right_target = -5;
+
+	pros::delay(400);
+
+	roller.move(-40);
+	pros::delay(200);
+	roller.move_relative(2500, 200);
+	pros::delay(1000);
+
+	// Stops the intake, robot movement, and turns off flashlight
+	roller.brake();
+	
+	// brake chassis
+	left_target = 0;
+	right_target = 0;
+
+	// turn off flashlight
+	color.set_led_pwm(0);
+}
+
 
 void autonomous() {	
 	run_roller();
@@ -443,28 +469,32 @@ void autonomous() {
 	intake.move_velocity(180);
 	drive_forward(-18*inch_to_mm);
 	pros::delay(500);
-	turn_to(184);
+	turn_to(183.5);
 	pros::delay(500);
 
 	intake.brake();
 	drive_forward(18*inch_to_mm);
 
-	shoot(3, 190);
+	shoot(3, 185);
 
 	turn_to(270);
-	drive_forward(-60);
-	run_roller();
+	
+	run_roller2();
 
 	drive_forward(30);
 	turn_to(75);
 	drive_forward(-12*inch_to_mm);
 	intake.move_velocity(180);
-	drive_forward(-12*inch_to_mm);
+	drive_forward(-18*inch_to_mm);
 	turn_to(170);
 	pros::delay(500);
 	shoot(3, 190);
-
-
+	turn_to(225);
+	drive_forward(-20*inch_to_mm);
+	turn_to(180);
+	pros::delay(500);
+	shoot(1, 210);
+	
 
 
 }

@@ -74,6 +74,7 @@ double theta;
 
 // Variables to store the target speed for each side of the chassis
 int left_target = 0, right_target = 0;
+bool slew2 = true;
 
 // variable to store the target speed
 int flywheel_target = 0;
@@ -169,13 +170,13 @@ int odometry() {
 		"    y: " + std::to_string((int)(y_loc*mm_to_inch)) + 
 		"    theta: " + std::to_string((int)theta));
 
-		// Calculate flywheel speed based on position and angle
-		flywheel_target = 0.04049 * get_goal_distance() + 97.61662;
+		
 	}
 	return 0;
 }
 
-
+int left_speed = 0;
+int right_speed = 0;
 /**
  * Task to drive the robot
  * 
@@ -184,26 +185,25 @@ int odometry() {
  */
 int drive () {
 	// Main control loop
-	int left_speed = 0;
-	int right_speed = 0;
 	const int slew = 60;
 	const int slew_f = 35;
-	while (true) {
-		if (chassis_l1.get_actual_velocity() + slew_f < left_target) {
-			left_speed = chassis_l1.get_actual_velocity() + slew_f;
-		} else if (chassis_l1.get_actual_velocity() - slew > left_target) {
-			left_speed = chassis_l1.get_actual_velocity() - slew;
-		} else {
-			left_speed = left_target;
-		}
+	while (slew2) {
+			if (chassis_l1.get_actual_velocity() + slew_f < left_target) {
+				left_speed = chassis_l1.get_actual_velocity() + slew_f;
+			} else if (chassis_l1.get_actual_velocity() - slew > left_target) {
+				left_speed = chassis_l1.get_actual_velocity() - slew;
+			} else {
+				left_speed = left_target;
+			}
 
-		if (chassis_r1.get_actual_velocity() + slew_f < right_target) {
-			right_speed = chassis_r1.get_actual_velocity() + slew_f;
-		} else if (chassis_r1.get_actual_velocity() - slew > right_target) {
-			right_speed = chassis_r1.get_actual_velocity() - slew;
-		} else {
-			right_speed = right_target;
-		}
+			if (chassis_r1.get_actual_velocity() + slew_f < right_target) {
+				right_speed = chassis_r1.get_actual_velocity() + slew_f;
+			} else if (chassis_r1.get_actual_velocity() - slew > right_target) {
+				right_speed = chassis_r1.get_actual_velocity() - slew;
+			} else {
+				right_speed = right_target;
+			}
+		
 
 		chassis_l1.move_velocity(left_speed);
 		chassis_l2.move_velocity(left_speed);
@@ -342,23 +342,25 @@ void drive_forward(int distance, int max_speed = 180) {
 	// accumulate total error to correct for it
 	double total_error = 0;
 	// The precision in mm
-	const double threshold = 1;
+	const double threshold = 8;
 	// The constants tuned for PID
-	const double kp = .001, ki = 0.005, kd = .000000001;
+	const double kp = .001, kd = .001;
 	// PID control loop
 	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
 
 		error = target - tracking_forward.get_position();
 		
-		total_error += (fabs(error) < 1000 ? error : 0);
+		total_error += (fabs(error) < 1000 ? error : -total_error);
 		pros::lcd::set_text(1, "prev error: " + std::to_string((int)prev_error) + "       " + std::to_string(prev_error*track_wheel_size*mm_to_inch));
 		pros::lcd::set_text(2, "error:      " + std::to_string((int)error) + "       " + std::to_string(error*track_wheel_size*mm_to_inch));
 		pros::lcd::set_text(3, "speed: " + std::to_string(left_target));
 		pros::lcd::set_text(4, "threshold: " + std::to_string(threshold/track_wheel_size));
 
+		pros::lcd::set_text(5, "speed: "+  std::to_string((int)(kp*error)) + " + " + std::to_string((int)(kd * (error - prev_error))) + " = " + std::to_string(kp * error + kd * (error - prev_error)));
 
-		left_target = kp * error + kd * (error - prev_error) + ki * total_error;
+
+		left_target = kp * error + kd * (error - prev_error);
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
 		right_target = left_target;
 		pros::delay(10);
@@ -375,6 +377,7 @@ void drive_forward(int distance, int max_speed = 180) {
  * @param count the number of times the robot should shoot at that speed
  */
 void shoot(int count) {
+	flywheel_target = 0.04049 * get_goal_distance() + 97.61662;
 	// Wait until flywheel is at desired speed
 	for (; count > 0; count--) {
 		while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
@@ -445,20 +448,21 @@ void run_roller(){
  * from where it left off.
  */
 void autonomous() {	
-//turns to goal and shoots
+	flywheel_target =0.04049 * get_goal_distance() + 97.61662;
+	//turns to goal and shoots
 	turn_to(286.5);
 	drive_forward(8.5*inch_to_mm);
 	pros::delay(500);
 	shoot(2);
 	pros::delay(500);
-//turns backwards to intake, angles next position
-	turn_to(47);
+	//turns backwards to intake, angles next position
+	turn_to(48);
 	pros::delay(250);
-//pick up the three discs and shoots
+	//pick up the three discs and shoots
 	intake.move_velocity(157);
 	pros::delay(80);
-//backwards movement, max speed is 180
-//80-95 max speed and around 150-160 velocity is good for slower and more accurate intake!
+	//backwards movement, max speed is 180
+	//80-95 max speed and around 150-160 velocity is good for slower and more accurate intake!
 	drive_forward(-47*inch_to_mm, 85);
 	pros::delay(125);
 	//aims at goal again
@@ -468,18 +472,9 @@ void autonomous() {
 	shoot(3);
 	pros::delay(500);
 	turn_to(47);
+
 }
-	/**
-	drive_forward(-14*inch_to_mm, 100);
-*/
 
-
-
-	/**
-
-
-	
-}
 
 
 /**
@@ -504,6 +499,7 @@ void opcontrol() {
 	int y_joystick = 0, x_joystick = 0;
 	// Variables to calculate chassis speed when using arcade drive
 	int power, turn;
+	slew2 = false;
 	// Main Control Loop
 	while (true) {
 		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
@@ -537,9 +533,9 @@ void opcontrol() {
 		// Roller code
 
 		if (controller.get_digital(DIGITAL_L1)) {
-			roller = 127;
+			roller = 80;
 		} else if (controller.get_digital(DIGITAL_L2)) {
-			roller = -127;
+			roller = -80;
 		} else {
 			roller.brake();
 		}
@@ -555,13 +551,24 @@ void opcontrol() {
          * value of the left joystick. Respectively turns chassis left and right based on value.
          */ 
 		y_joystick = controller.get_analog(ANALOG_LEFT_Y);
-		x_joystick = controller.get_analog(ANALOG_LEFT_X);
+		x_joystick = controller.get_analog(ANALOG_RIGHT_Y);
 
-		power = abs(y_joystick) > 8 ? (y_joystick-std::signbit(y_joystick)*8)*200/119 : 0;
-		turn = abs(x_joystick) > 8 ? (x_joystick-std::signbit(x_joystick)*8)*200/119 : 0; 
-		right_target = power + turn;
-		left_target = power - turn;
+		right_speed = abs(y_joystick) > 8 ? (y_joystick-std::signbit(y_joystick)*8)*200/119 : 0;
+		left_speed = abs(x_joystick) > 8 ? (x_joystick-std::signbit(x_joystick)*8)*200/119 : 0; 
+		//right_target = power + turn;
+		//left_target = power - turn;
  
+		pros::lcd::set_text(2, "speed: " + std::to_string(left_speed));
+		pros::lcd::set_text(3, "speed: " + std::to_string(right_speed));
+
+		chassis_l1.move_velocity(left_speed);
+		chassis_l2.move_velocity(left_speed);
+		chassis_l3.move_velocity(left_speed);
+		chassis_l4.move_velocity(left_speed*3/5);
+		chassis_r1.move_velocity(right_speed);
+		chassis_r2.move_velocity(right_speed);
+		chassis_r3.move_velocity(right_speed);
+		chassis_r4.move_velocity(right_speed*3/5);
 		/** 
          * Base Tank Controls 
          *
@@ -571,8 +578,8 @@ void opcontrol() {
          * Joystick has a small deadzone to prevent accidental movements when 
          * the joysticks are not perfectly centered
          */ 
-		// left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? (controller.get_analog(ANALOG_RIGHT_Y)-8)*200/119 : 0; 
-		// right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? (controller.get_analog(ANALOG_LEFT_Y)-8)*200/119 : 0; 
+		//left_target = abs(controller.get_analog(ANALOG_RIGHT_Y)) > 8 ? (controller.get_analog(ANALOG_RIGHT_Y)-8)*200/119 : 0; 
+		//right_target = abs(controller.get_analog(ANALOG_LEFT_Y)) > 8 ? (controller.get_analog(ANALOG_LEFT_Y)-8)*200/119 : 0; 
 		
 		
 
@@ -589,7 +596,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-
+		flywheel_target = 150;
 		
 		
 
