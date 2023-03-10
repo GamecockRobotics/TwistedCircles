@@ -596,7 +596,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-		flywheel_target = 150;
+		flywheel_target = 200;
 		
 		
 
