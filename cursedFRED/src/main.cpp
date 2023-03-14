@@ -208,7 +208,7 @@ void opcontrol() {
 	int i = 0;
 	int j =0;
 	for(i = 65; i<=10000;){
-		sendDataToRaspberryPiInt(j);
+		sendDataToRaspberryPi(j);
 		j++;
 		pros::delay(20);
 	}
