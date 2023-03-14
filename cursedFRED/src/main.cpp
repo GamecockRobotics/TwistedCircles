@@ -93,13 +93,13 @@ std::string intToString(int number){
 	return std::to_string(number);
 }
 
-void sendDataToRaspberryPiInt(int value){
+void sendDataToRaspberryPi(int value){
 	std::string data;
 	data = std::to_string(value) + "\n";
 	std::cout << data;
 }
 
-void sendDataToRaspberryPiString(std::string value){
+void sendDataToRaspberryPi(std::string value){
 	std::cout << value;
 }
 
@@ -208,7 +208,7 @@ void opcontrol() {
 	int i = 0;
 	int j =0;
 	for(i = 65; i<=10000;){
-		sendDataToRaspberryPiInt(j);
+		sendDataToRaspberryPi(j);
 		j++;
     controller.rumble("----...----");
 		pros::delay(20);
