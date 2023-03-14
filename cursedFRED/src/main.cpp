@@ -210,8 +210,11 @@ void opcontrol() {
 	for(i = 65; i<=10000;){
 		sendDataToRaspberryPiInt(j);
 		j++;
+    controller.rumble("----...----");
 		pros::delay(20);
 	}
+
+  
 
 
 	// pros::Task drive(driveTask);
