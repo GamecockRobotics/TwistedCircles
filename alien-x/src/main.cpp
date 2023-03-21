@@ -5,39 +5,42 @@
 
 
 //defining motors ports
-#define CHASSIS_L1_PORT 1
-#define CHASSIS_L2_PORT 2
-#define CHASSIS_L3_PORT 3
-#define CHASSIS_L4_PORT 4
-#define CHASSIS_R1_PORT 5
-#define CHASSIS_R2_PORT 6
-#define CHASSIS_R3_PORT 7
-#define CHASSIS_R4_PORT 8
+#define CHASSIS_L1_PORT 11
+#define CHASSIS_L2_PORT 12
+#define CHASSIS_L3_PORT 13
+#define CHASSIS_L4_PORT 14
+#define CHASSIS_R1_PORT 15
+#define CHASSIS_R2_PORT 16
+#define CHASSIS_R3_PORT 17
+#define CHASSIS_R4_PORT 18
 #define CATA_L_PORT 9
 #define CATA_R_PORT 10
+#define INTAKE1_PORT 4
+#define INTAKE2_PORT 5
+
 
 
 //defining sensor ports
-#define GYRO_PORT 11
-#define OPTICAL_PORT 12
+//#define GYRO_PORT 11
+//#define OPTICAL_PORT 12
 
 //declaring motors
 pros::Motor chassis_L1(CHASSIS_L1_PORT,true);
-pros::Motor chassis_L2(CHASSIS_L2_PORT, true);
-pros::Motor chassis_L3(CHASSIS_L3_PORT, true);
+pros::Motor chassis_L2(CHASSIS_L2_PORT,true);
+pros::Motor chassis_L3(CHASSIS_L3_PORT,true);
 pros::Motor chassis_L4(CHASSIS_L4_PORT);
 pros::Motor chassis_R1(CHASSIS_R1_PORT);
 pros::Motor chassis_R2(CHASSIS_R2_PORT);
 pros::Motor chassis_R3(CHASSIS_R3_PORT);
 pros::Motor chassis_R4(CHASSIS_R4_PORT, true);
-// pros::Motor intake_1(INTAKE1_PORT);
-// pros::Motor intake_2(INTAKE2_PORT,true);
+pros::Motor intake_1(INTAKE1_PORT);
+pros::Motor intake_2(INTAKE2_PORT,true);
 // pros::Motor roller(ROLLER_PORT);
 pros::Motor catapult_L(CATA_L_PORT);
 pros::Motor catapult_R(CATA_R_PORT, true);
 
 //Declaring sensors and pneumatics
-pros::Imu gyro (GYRO_PORT);
+//pros::Imu gyro (GYRO_PORT);
 //pros::ADIDigitalOut launcher(LAUNCHER_PORT);
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
@@ -195,15 +198,27 @@ void opcontrol() {
 		// 	intakeFlag = false;
 		// }
 
-		if(controller.get_digital(DIGITAL_A)){
+		if(controller.get_digital(DIGITAL_R1)){
 			catapult_L= 127;
 			catapult_R= 127;
-		} else if (controller.get_digital(DIGITAL_B)) {
+		} else if (controller.get_digital(DIGITAL_R2)) {
 			catapult_L= -127;
 			catapult_R= -127;
 		} else {
 			catapult_L = 0;
 			catapult_R = 0;
 		}
+
+		if(controller.get_digital(DIGITAL_L1)){
+			intake_1 = 127;
+			intake_2 = 127;
+		} else if(controller.get_digital(DIGITAL_L2)){
+			intake_1 = -127;
+			intake_2 = -127;
+		} else {
+			intake_1 = 0;
+			intake_2 = 0;
+		}
+
 	}
 }
