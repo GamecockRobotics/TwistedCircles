@@ -54,6 +54,7 @@ def updateMap(data):
     angleDiff = 2
 
     screen.update()
+    screen.sleep(1/30)
 
 adapter_addr = 'CC:F9:E4:9B:77:A0'
 port = 7  # Normal port for rfcomm?
