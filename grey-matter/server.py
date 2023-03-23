@@ -81,7 +81,7 @@ try:
     while True:
         data = client.recv(buf_size).decode()
         data = data[0:]
-        if not re.search("[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[a-z]*", data):
+        if not re.search("^[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[a-z]*\\n", data):
             continue
         print(data)
         if data:
