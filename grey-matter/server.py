@@ -69,7 +69,7 @@ try:
     print('Listening for connection...')
     client, address = s.accept()
     print(f'Connected to {address}')
-    
+    startMap()
 
     while True:
         data = client.recv(buf_size).decode()
