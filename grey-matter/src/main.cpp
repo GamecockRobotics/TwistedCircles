@@ -14,6 +14,8 @@
 #include <string>
 #include <sys/errno.h>
 #include <type_traits>
+#include "pros/serial.hpp"
+#include "pros/apix.h"
 
 // Define Ports for Motors
 #define CHASSIS_L1_PORT 9
@@ -118,6 +120,10 @@ pros::Optical color(COLOR_PORT);
  */
 double get_distance(double x0, double y0, double x1, double y1) {
 	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
+}
+
+void sendDataToPy(std::string data) {
+	std::cout << data;
 }
 
 
@@ -265,6 +271,8 @@ void initialize() {
 	// Delay to allow calibration of sensors
 	pros::delay(3000);
 	// Initialize lcd for debugging
+
+	pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
 	
 
 
@@ -502,7 +510,8 @@ void opcontrol() {
 	int power, turn;
 	slew2 = false;
 	// Main Control Loop
-	while (true) {
+	for (int i = 0; i <= 1;) {
+		sendDataToPy(std::to_string(x_loc) + "\t"+ std::to_string(y_loc)+ "\t" + std::to_string(theta) + "\t" + "text" + "\n");
 		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
 			pros::Task run_flywheel_task(flywheel_task);
 		}
@@ -606,6 +615,6 @@ void opcontrol() {
 		
 
 		// Delay so other processes can run
-		pros::delay(10);
+		pros::delay(69);
 	}
 }

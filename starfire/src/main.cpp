@@ -3,14 +3,14 @@
 
 pros::Controller Controller(pros::E_CONTROLLER_MASTER);
 
-pros::Motor front_right_1(2);
-pros::Motor front_right_2(1,true);
-pros::Motor front_left_1(12);
-pros::Motor front_left_2(11,true);
-pros::Motor back_right_1(10);
+pros::Motor front_right_1(1);
+pros::Motor front_right_2(2,true);
+pros::Motor front_left_1(11);
+pros::Motor front_left_2(12,true);
+pros::Motor back_right_1(8);
 pros::Motor back_right_2(9,true);
-pros::Motor back_left_1(20);
-pros::Motor back_left_2(19,true);
+pros::Motor back_left_1(19);
+pros::Motor back_left_2(20,true);
 
 void initialize() {}
 
