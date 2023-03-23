@@ -75,9 +75,9 @@ try:
         data = client.recv(buf_size).decode()
         if not re.search("[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[a-z]*", data):
             continue
-        elif data:
+        if data:
             updateMap(data)
-        elif not data:
+        if not data:
             break
 
 except Exception as e:
