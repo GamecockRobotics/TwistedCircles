@@ -4,8 +4,8 @@ import re
 x: 432.432  
 # Setting up Map
 mm = 3660 / 600
-x = 1830 / mm
-y = 100 / mm
+x = 1385 / mm
+y = 3238 / mm
 oldX = x
 oldY = y
 theta = 0
