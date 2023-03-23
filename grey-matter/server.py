@@ -38,7 +38,7 @@ def updateMap(data):
     global oldX
     global oldY
     global theta
-    data = data.split("/t")
+    data = data.split("\t")
     x = float(data[0])
     y = float(data[1])
     theta = float(data[2])
