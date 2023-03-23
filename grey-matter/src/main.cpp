@@ -16,24 +16,24 @@
 #include <type_traits>
 
 // Define Ports for Motors
-#define CHASSIS_L1_PORT 4
-#define CHASSIS_L2_PORT 1
-#define CHASSIS_L3_PORT 8
-#define CHASSIS_L4_PORT 6
-#define CHASSIS_R1_PORT 5
-#define CHASSIS_R2_PORT 10
-#define CHASSIS_R3_PORT 15
-#define CHASSIS_R4_PORT 11
-#define INTAKE_PORT 19
-#define FLYWHEEL_PORT 2
-#define ROLLER_PORT 18
+#define CHASSIS_L1_PORT 9
+#define CHASSIS_L2_PORT 14
+#define CHASSIS_L3_PORT 16
+#define CHASSIS_L4_PORT 13
+#define CHASSIS_R1_PORT 3
+#define CHASSIS_R2_PORT 4
+#define CHASSIS_R3_PORT 8
+#define CHASSIS_R4_PORT 18
+#define INTAKE1_PORT 2
+#define INTAKE2_PORT 20
+#define FLYWHEEL_PORT 7
+#define ROLLER_PORT 19
 
 // Define Ports for Sensors
-#define ROLLER_SENSOR_PORT 1
-#define TRACKING_SIDE_PORT 13
-#define TRACKING_FORWARD_PORT 20
-#define GYRO_PORT 9
-#define COLOR_PORT 7
+#define TRACKING_SIDE_PORT 5
+#define TRACKING_FORWARD_PORT 6
+#define GYRO_PORT 15
+#define COLOR_PORT 10
 
 // Define Ports for sensors and pistons on the Analog Ports
 #define INDEXER_PORT 2
@@ -84,15 +84,16 @@ int flywheel_target = 0;
 // Define Controller
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 // Define Motors
-pros::Motor chassis_r1(CHASSIS_R1_PORT, true);
-pros::Motor chassis_r2(CHASSIS_R2_PORT, true);
-pros::Motor chassis_r3(CHASSIS_R3_PORT, true);
+pros::Motor chassis_r1(CHASSIS_R1_PORT);
+pros::Motor chassis_r2(CHASSIS_R2_PORT);
+pros::Motor chassis_r3(CHASSIS_R3_PORT);
 pros::Motor chassis_r4(CHASSIS_R4_PORT);
-pros::Motor chassis_l1(CHASSIS_L1_PORT);
-pros::Motor chassis_l2(CHASSIS_L2_PORT);
-pros::Motor chassis_l3(CHASSIS_L3_PORT);
-pros::Motor chassis_l4(CHASSIS_L4_PORT, true);
-pros::Motor intake(INTAKE_PORT, true);
+pros::Motor chassis_l1(CHASSIS_L1_PORT,true);
+pros::Motor chassis_l2(CHASSIS_L2_PORT,true);
+pros::Motor chassis_l3(CHASSIS_L3_PORT,true);
+pros::Motor chassis_l4(CHASSIS_L4_PORT,true);
+pros::Motor intake1(INTAKE1_PORT);
+pros::Motor intake2(INTAKE2_PORT,true);
 pros::Motor flywheel(FLYWHEEL_PORT, true);
 pros::Motor roller(ROLLER_PORT);
 
@@ -100,7 +101,6 @@ pros::Motor roller(ROLLER_PORT);
 pros::ADIDigitalOut indexer(INDEXER_PORT);
 pros::ADIDigitalOut endgame(ENDGAME_PORT);
 // Define Sensors
-pros::Optical roller_sensor(ROLLER_SENSOR_PORT);
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
 pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);
 pros::ADIPotentiometer flywheel_potentiometer(FLYWHEEL_POTENTIOMETER_PORT);
@@ -208,11 +208,11 @@ int drive () {
 		chassis_l1.move_velocity(left_speed);
 		chassis_l2.move_velocity(left_speed);
 		chassis_l3.move_velocity(left_speed);
-		chassis_l4.move_velocity(left_speed*3/5);
+		chassis_l4.move_velocity(left_speed);
 		chassis_r1.move_velocity(right_speed);
 		chassis_r2.move_velocity(right_speed);
 		chassis_r3.move_velocity(right_speed);
-		chassis_r4.move_velocity(right_speed*3/5);
+		chassis_r4.move_velocity(right_speed);
 		// Delay for other tasks to run
 		pros::delay(20);
 	}
@@ -459,7 +459,8 @@ void autonomous() {
 	turn_to(48);
 	pros::delay(250);
 	//pick up the three discs and shoots
-	intake.move_velocity(157);
+	intake1.move_velocity(157);
+	intake2.move_velocity(157);
 	pros::delay(80);
 	//backwards movement, max speed is 180
 	//80-95 max speed and around 150-160 velocity is good for slower and more accurate intake!
@@ -508,12 +509,16 @@ void opcontrol() {
 
 
 		// Debugging for the Intake
-		if (controller.get_digital(DIGITAL_R1))
-			intake = 127;
-		else if (controller.get_digital(DIGITAL_R2))
-			intake = -127;
-		else
-			intake = 0;
+		if (controller.get_digital(DIGITAL_R1)) {
+			intake1 = 127;
+			intake2 = 127;
+		} else if (controller.get_digital(DIGITAL_R2)) {
+			intake1 = -127;
+			intake2 = -127;
+		} else {
+			intake1 = 0;
+			intake2 = 0;
+		}
 
 		/**
 		 * When A is pressed starts a timer of 8 iterations until piston retracts
@@ -553,8 +558,8 @@ void opcontrol() {
 		y_joystick = controller.get_analog(ANALOG_LEFT_Y);
 		x_joystick = controller.get_analog(ANALOG_RIGHT_Y);
 
-		right_speed = abs(y_joystick) > 8 ? (y_joystick-std::signbit(y_joystick)*8)*200/119 : 0;
-		left_speed = abs(x_joystick) > 8 ? (x_joystick-std::signbit(x_joystick)*8)*200/119 : 0; 
+		left_speed = abs(y_joystick) > 8 ? (y_joystick-std::signbit(y_joystick)*8)*200/119 : 0;
+		right_speed = abs(x_joystick) > 8 ? (x_joystick-std::signbit(x_joystick)*8)*200/119 : 0; 
 		//right_target = power + turn;
 		//left_target = power - turn;
  
@@ -564,11 +569,11 @@ void opcontrol() {
 		chassis_l1.move_velocity(left_speed);
 		chassis_l2.move_velocity(left_speed);
 		chassis_l3.move_velocity(left_speed);
-		chassis_l4.move_velocity(left_speed*3/5);
+		chassis_l4.move_velocity(left_speed);
 		chassis_r1.move_velocity(right_speed);
 		chassis_r2.move_velocity(right_speed);
 		chassis_r3.move_velocity(right_speed);
-		chassis_r4.move_velocity(right_speed*3/5);
+		chassis_r4.move_velocity(right_speed);
 		/** 
          * Base Tank Controls 
          *
