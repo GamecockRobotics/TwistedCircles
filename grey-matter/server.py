@@ -73,9 +73,10 @@ try:
 
     while True:
         data = client.recv(buf_size).decode()
+        data = data[2,]
         if not re.search("[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[a-z]*", data):
             continue
-        print("got value")
+        print(data)
         if data:
             updateMap(data)
         if not data:

@@ -14,6 +14,8 @@
 #include <string>
 #include <sys/errno.h>
 #include <type_traits>
+#include "pros/serial.hpp"
+#include "pros/apix.h"
 
 // Define Ports for Motors
 #define CHASSIS_L1_PORT 4
@@ -30,9 +32,9 @@
 
 // Define Ports for Sensors
 #define ROLLER_SENSOR_PORT 1
-#define TRACKING_SIDE_PORT 13
-#define TRACKING_FORWARD_PORT 20
-#define GYRO_PORT 9
+#define TRACKING_SIDE_PORT 5
+#define TRACKING_FORWARD_PORT 6
+#define GYRO_PORT 15
 #define COLOR_PORT 7
 
 // Define Ports for sensors and pistons on the Analog Ports
@@ -269,6 +271,8 @@ void initialize() {
 	// Delay to allow calibration of sensors
 	pros::delay(3000);
 	// Initialize lcd for debugging
+
+	pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
 	
 
 
@@ -505,7 +509,7 @@ void opcontrol() {
 	int power, turn;
 	slew2 = false;
 	// Main Control Loop
-	while (true) {
+	for (int i = 0; i <= 1;) {
 		sendDataToPy(std::to_string(x_loc) + "\t"+ std::to_string(y_loc)+ "\t" + std::to_string(theta) + "\t" + "text");
 		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
 			pros::Task run_flywheel_task(flywheel_task);
@@ -606,6 +610,6 @@ void opcontrol() {
 		
 
 		// Delay so other processes can run
-		pros::delay(10);
+		pros::delay(69);
 	}
 }
