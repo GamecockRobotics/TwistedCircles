@@ -120,6 +120,10 @@ double get_distance(double x0, double y0, double x1, double y1) {
 	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
 }
 
+void sendDataToPy(std::string data) {
+	std::cout << data;
+}
+
 
 /**
  * Gets the distance from the robot to the goal
@@ -502,6 +506,7 @@ void opcontrol() {
 	slew2 = false;
 	// Main Control Loop
 	while (true) {
+		sendDataToPy(std::to_string(x_loc) + "\t"+ std::to_string(y_loc)+ "\t" + std::to_string(theta) + "+\t" + "text");
 		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
 			pros::Task run_flywheel_task(flywheel_task);
 		}
