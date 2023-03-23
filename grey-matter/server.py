@@ -54,7 +54,7 @@ def updateMap(data):
 
     screen.update()
 
-adapter_addr = 'E0:D4:64:95:05:15'
+adapter_addr = 'CC:F9:E4:9B:77:A0'
 port = 7  # Normal port for rfcomm?
 buf_size = 1024
 
@@ -73,9 +73,11 @@ try:
 
     while True:
         data = client.recv(buf_size).decode()
-        if data:
+        if data.startswith("\\x06sout\\n"):
+            continue
+        elif data:
             updateMap(data)
-        if not data:
+        elif not data:
             break
 
 except Exception as e:
