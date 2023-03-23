@@ -39,8 +39,8 @@ def updateMap(data):
     global oldY
     global theta
     data = data.split("\t")
-    x = float(data[0])
-    y = float(data[1])
+    x = float(data[0]) / mm
+    y = float(data[1]) / mm
     theta = float(data[2])
     text = data[3]
 
@@ -58,6 +58,9 @@ def updateMap(data):
     robot.moveto(Location(x, y))
     newLine = Line(screen, oldX, oldY, x, y)
     robot.rotation(theta)
+
+    oldX = x
+    oldY = y
 
     screen.update()
     screen.sleep(1/30)
