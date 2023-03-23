@@ -1,7 +1,7 @@
 import socket
 from pydraw import *
 import re
-
+x: 432.432  
 # Setting up Map
 mm = 3660 / 600
 x = 1830 / mm
@@ -73,7 +73,7 @@ try:
 
     while True:
         data = client.recv(buf_size).decode()
-        if re.search("^\\x06sout\\n", data):
+        if re.search("[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[a-z]*", data):
             continue
         elif data:
             updateMap(data)
