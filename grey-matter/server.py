@@ -1,5 +1,6 @@
 import socket
 from pydraw import *
+import re
 
 # Setting up Map
 mm = 3660 / 600
@@ -55,7 +56,7 @@ def updateMap(data):
     screen.update()
 
 adapter_addr = 'CC:F9:E4:9B:77:A0'
-port = 3  # Normal port for rfcomm?
+port = 7  # Normal port for rfcomm?
 buf_size = 1024
 
 s = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
@@ -69,11 +70,10 @@ try:
     client, address = s.accept()
     print(f'Connected to {address}')
     
-    startMap()
 
     while True:
         data = client.recv(buf_size).decode()
-        if data.startswith("\\x06sout\\n"):
+        if re.search("^\\x06sout\\n", data):
             continue
         elif data:
             updateMap(data)
