@@ -18,6 +18,8 @@ text3 = None
 text4 = None
 
 def startMap():
+    global screen
+    global robot
     goalLoc = 279.4 / mm
     screen = Screen(800, 600)
     line = Line(screen, 600, 0, 600, 600)
@@ -27,10 +29,19 @@ def startMap():
     screen.update()
 
 def updateMap(data):
+    global text1
+    global text2
+    global text3
+    global text4
+    global x
+    global y
+    global oldX
+    global oldY
+    global theta
     data = data.split("/t")
-    x = int(data[0])
-    y = int(data[1])
-    theta = int(data[2])
+    x = float(data[0])
+    y = float(data[1])
+    theta = float(data[2])
     text = data[3]
 
     if text1:
@@ -47,11 +58,6 @@ def updateMap(data):
     robot.moveto(Location(x, y))
     newLine = Line(screen, oldX, oldY, x, y)
     robot.rotation(theta)
-
-    x = x + 10
-    y = y + 10
-
-    angleDiff = 2
 
     screen.update()
     screen.sleep(1/30)
@@ -74,7 +80,7 @@ try:
 
     while True:
         data = client.recv(buf_size).decode()
-        data = data[2,]
+        data = data[2:]
         if not re.search("[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[0-9]+.[0-9]+\\t[a-z]*", data):
             continue
         print(data)

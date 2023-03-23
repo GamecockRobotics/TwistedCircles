@@ -510,7 +510,7 @@ void opcontrol() {
 	slew2 = false;
 	// Main Control Loop
 	for (int i = 0; i <= 1;) {
-		sendDataToPy(std::to_string(x_loc) + "\t"+ std::to_string(y_loc)+ "\t" + std::to_string(theta) + "\t" + "text");
+		sendDataToPy(std::to_string(x_loc) + "\t"+ std::to_string(y_loc)+ "\t" + std::to_string(theta) + "\t" + "text" + "\n");
 		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
 			pros::Task run_flywheel_task(flywheel_task);
 		}
