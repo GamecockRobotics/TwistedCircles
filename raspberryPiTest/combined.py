@@ -8,7 +8,8 @@ if ser.isOpen():
 ser.open()
 ser.isOpen()
 
-serverMAC = 'CC:F9:E4:9B:77:A0'
+serverMAC1 = 'CC:F9:E4:9B:77:A0' #Natty's Thingy
+serverMAC = 'E0:D4:64:95:05:15' #Austin's Thingy
 
 port = 7
 
