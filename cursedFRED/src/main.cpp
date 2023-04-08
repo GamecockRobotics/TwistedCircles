@@ -1,61 +1,65 @@
 #include "main.h"
 #include "pros/adi.hpp"
+#include "pros/apix.h"
 #include "pros/imu.hpp"
 #include "pros/llemu.hpp"
 #include "pros/optical.hpp"
 #include "pros/rtos.h"
+#include "pros/serial.hpp"
+#include <cstdio>
 #include <iostream>
 #include <string>
-#include "pros/serial.hpp"
-#include "pros/apix.h"
-#include <cstdio>
 
+#define INTAKEL_PORT 6
+#define INTAKER_PORT 5
+#define CATAL_PORT 19
+#define CATAR_PORT 20
+#define GYRO_PORT 18
+#define LIMIT_PORT 'g'
+#define VISION1_PORT 11
+#define VISION2_PORT 12
+#define RANGE_SWITCH_PORT 'h' // These are pistons
+#define ENDGAME_PORT 'f'      // These are pistons
+#define CHASSIS_L1_PORT 7     // top front motor
+#define CHASSIS_L2_PORT 8     // Top back motor
+#define CHASSIS_L3_PORT 9     // bottom front motor
+#define CHASSIS_L4_PORT 10    // bottom back motor
+#define CHASSIS_R1_PORT 1     // top front motor
+#define CHASSIS_R2_PORT 2     // top back motor
+#define CHASSIS_R3_PORT 3     // bottom front motor
+#define CHASSIS_R4_PORT 4     // bottom back motor
 
-
-
-#define CHASSIS_L1_PORT 1     // top front motor
-#define CHASSIS_L2_PORT 2     // Top back motor
-#define CHASSIS_L3_PORT 3     // bottom front motor
-#define CHASSIS_L4_PORT 4    // bottom back motor
-#define CHASSIS_R1_PORT 5     // top front motor
-#define CHASSIS_R2_PORT 6     // top back motor
-#define CHASSIS_R3_PORT 7     // bottom front motor
-#define CHASSIS_R4_PORT 8     // bottom back motor
-
-#define INTAKEL_PORT 9
-#define INTAKER_PORT 10
-#define CATAL_PORT 11
-#define CATAR_PORT 12
-#define GYRO_PORT 13
-
-#define ENDGAME_PORT 'h'
-#define RANGE_SWITCH_PORT 'g'
-
-enum color {red, blue};
-enum turnType {right, left};
+enum color { red, blue };
+enum turnType { right, left };
 enum intakeSetting { on, off };
 enum opticalType { rightSen, leftSen };
 
 // declaring motors
-pros::Motor chassis_r1(CHASSIS_R1_PORT);
-pros::Motor chassis_r2(CHASSIS_R2_PORT);
+pros::Motor chassis_r1(CHASSIS_R1_PORT, true);
+pros::Motor chassis_r2(CHASSIS_R2_PORT, true);
 pros::Motor chassis_r3(CHASSIS_R3_PORT);
 pros::Motor chassis_r4(CHASSIS_R4_PORT);
 pros::Motor chassis_l1(CHASSIS_L1_PORT);
 pros::Motor chassis_l2(CHASSIS_L2_PORT);
-pros::Motor chassis_l3(CHASSIS_L3_PORT);
-pros::Motor chassis_l4(CHASSIS_L4_PORT);
+pros::Motor chassis_l3(CHASSIS_L3_PORT, true);
+pros::Motor chassis_l4(CHASSIS_L4_PORT, true);
 
 pros::Motor cataL(CATAL_PORT);
-pros::Motor cataR(CATAR_PORT);
-pros::Motor intake_1(INTAKEL_PORT);
+pros::Motor cataR(CATAR_PORT, true);
+pros::Motor intake_1(INTAKEL_PORT, true);
 pros::Motor intake_2(INTAKER_PORT);
 pros::ADIDigitalOut endgame(ENDGAME_PORT);
 pros::Imu gyro(GYRO_PORT);
 pros::ADIDigitalOut rangeSwitch(RANGE_SWITCH_PORT);
+pros::ADIDigitalIn SlipGearSensor(LIMIT_PORT);
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
+double ycord0 = 0;
+double xcord0 = 0;
+double ycord1 = 0;
+double xcord1 = 0;
+double theta = 0;
 
 bool endgameState = true;
 
@@ -69,6 +73,12 @@ void tareMotors() {
   chassis_r2.tare_position();
   chassis_r3.tare_position();
   chassis_r4.tare_position();
+}
+
+int odmentry() {
+  int value = 0;
+
+  return value;
 }
 
 void rangeSwitchToggle(bool rangeToggle) { rangeSwitch.set_value(rangeToggle); }
@@ -89,24 +99,20 @@ color get_color(double hue) {
   return (hue < 20) ? red : blue;
 }
 
-std::string intToString(int number){
-	return std::to_string(number);
+std::string intToString(int number) { return std::to_string(number); }
+
+void sendDataToRaspberryPi(int value) {
+  std::string data;
+  data = std::to_string(value) + "\n";
+  std::cout << data;
 }
 
-void sendDataToRaspberryPi(int value){
-	std::string data;
-	data = std::to_string(value) + "\n";
-	std::cout << data;
-}
+void sendDataToRaspberryPi(std::string value) { std::cout << value; }
 
-void sendDataToRaspberryPi(std::string value){
-	std::cout << value;
-}
-
-std::string recieveDataToRaspberryPi(){
-	std::string data;
-	std::cin >> data;
-	return data;
+std::string recieveDataToRaspberryPi() {
+  std::string data;
+  std::cin >> data;
+  return data;
 }
 
 /**
@@ -116,11 +122,19 @@ std::string recieveDataToRaspberryPi(){
  * to keep execution time for this mode under a few seconds.
  */
 void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+  pros::lcd::initialize();
+  pros::lcd::set_text(1, "Hello PROS User!");
 
-	pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
-	
+  pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
+
+  ycord0 = 0;
+  xcord0 = 0;
+  ycord1 = 0;
+  xcord1 = 0;
+  theta = 0;
+
+  cataL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+  cataR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 }
 
 /**
@@ -169,7 +183,7 @@ void autonomous() {}
  * task, not resume it from where it left off.
  */
 
- int driveTask() {
+int driveTask() {
   while (true) {
     // Base Tank Controls
     int left = controller.get_analog(ANALOG_LEFT_Y);
@@ -203,37 +217,58 @@ void autonomous() {}
   return 0;
 }
 
-
 void opcontrol() {
-	int i = 0;
-	int j =0;
-	for(i = 65; i<=10000;){
-		sendDataToRaspberryPi(j);
-		j++;
-    controller.rumble("----...----");
-		pros::delay(20);
-	}
+  // int i = 0;
+  // int j =0;
+  // for(i = 65; i<=10000;){
+  // 	sendDataToRaspberryPi(j);
+  // 	j++;
+  //   controller.rumble("----...----");
+  // 	pros::delay(20);
+  // }
 
-  
+  int cataFlag = 0;
+  pros::Task drive(driveTask);
+  while (true) {
 
+    // Catapult pull back on Button Sensor
+    if (!SlipGearSensor.get_value()) {
+      cataFlag = 1;
+      cataL.move_velocity(600);
+      cataR.move_velocity(600);
+      pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+    } else if (SlipGearSensor.get_value()) {
+      cataFlag = 0;
+      // intakeLock = 0;
+      cataL.brake();
+      cataR.brake();
+      pros::lcd::set_text(3,
+                          "down" + std::to_string(SlipGearSensor.get_value()));
+    }
+    // Intake
+    if (controller.get_digital(DIGITAL_L1)) {
+      intake_1.move(-110);
+      intake_2.move(-110);
+    } else if (controller.get_digital(DIGITAL_L2)) {
+      intake_1.move(127);
+      intake_2.move(127);
+    } else {
+      intake_1.brake();
+      intake_2.brake();
+    }
 
-	// pros::Task drive(driveTask);
-	// while (true) {
-		
-	// // Intake
-    // if (controller.get_digital(DIGITAL_L1)) {
-    //   intake_1.move(-110);
-    //   intake_2.move(-110);
-    // } else if (controller.get_digital(DIGITAL_L2)) {
-    //   intake_1.move(127);
-    //   intake_2.move(127);
-    // } else {
-    //   intake_1.brake();
-    //   intake_2.brake();
-    // }
-	
+    if (controller.get_digital(DIGITAL_R1) && cataFlag == 0) {
+      cataFlag = 0;
+      // intakeLock = 1;
+      cataL.move_velocity(600);
+      cataR.move_velocity(600);
+    }
+    if (controller.get_digital(DIGITAL_R2)) {
+      cataL.move_velocity(-600);
+      cataR.move_velocity(-600);
+    }
 
-	// // String Launcher
+    // // String Launcher
     // if (controller.get_digital(DIGITAL_RIGHT) &&
     //     controller.get_digital(DIGITAL_UP) &&
     //     controller.get_digital(DIGITAL_DOWN) &&
@@ -249,6 +284,6 @@ void opcontrol() {
     //   rangeSwitchToggle(true);
     // }
 
-	// 	pros::delay(20);
-	// }
+    pros::delay(20);
+  }
 }

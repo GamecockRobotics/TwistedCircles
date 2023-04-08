@@ -225,45 +225,7 @@ int drive () {
 	return 0;
 }
 
-/**
- * Task to control flywheel speed using take back half algorithm
- */
-int flywheel_task () {
-	// take back half constant for getting close to desired speed
-	int tbh = 6000;
-	// the difference between the desired and actual speed
-	int error;
-	// the actual voltage to set the motor speed to
-	int output = 0;
-	// Control loop for flywheel
-	while (true) {
-		// calculate differences in desired speed
-		error = flywheel_target - flywheel.get_actual_velocity();
 
-		// accumulate voltage to get to good speed
-		output += error;
-		
-		// If going to fast slow down some
-		if (error < -flywheel_target/25) {
-			output = (output+tbh)/2;
-			tbh = output;
-		}
-
-		// Prevent exceeding maximum voltage to not cause errors in calculations
-		if (output > 12000) output = 12000;
-
-		// pros::lcd::set_text(5, "flywheel: " + std::to_string(flywheel.get_actual_velocity()));
-
-		// Set Flywheel speed to calculated value
-		// flywheel.move_voltage(output);
-
-		flywheel.move_velocity(flywheel_target);
-
-		// Delay so other processes can run
-		pros::delay(10);
-	}
-	return 0;
-}
 
 void initialize() {
 	
@@ -278,7 +240,6 @@ void initialize() {
 
 	pros::Task drive_task(drive);
 	pros::Task odometry_task(odometry);
-	pros::Task run_flywheel_task(flywheel_task);
 }
 
 /**
@@ -288,18 +249,19 @@ void initialize() {
  * @param angle the angle that the robot should turn to
  */
 void turn_to(double angle) {
-	double error = -180 +fmod((angle+180-(fmod(theta, 360))),360);
+	double error = 180 - fmod((angle+180-(fmod(theta, 360))),360);
 	double prev_error;
 	double total_error = 0;
 	// The precision in degrees required to exit the loop
 	const double threshold = 1;
 	// The constants tuned for PID
+	// const double kp = 0.84, ki = 0.04, kd = 0.080;
 	const double kp = 1, ki = 0.05, kd = 2;
 
 	// PID control loop
 	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
 		prev_error = error;
-		error = -180 + fmod((angle + 180 - (fmod(theta, 360))), 360);
+		error = 180 - fmod((angle + 180 - (fmod(theta, 360))), 360);
 		total_error += (fabs(error) < 2 ? error : 0);
 
 		pros::lcd::set_text(2, "error: " + std::to_string(error));
@@ -384,13 +346,13 @@ void drive_forward(int distance, int max_speed = 180) {
  * @param speed the speed the flywheel should shoot at
  * @param count the number of times the robot should shoot at that speed
  */
-void shoot(int count) {
-	flywheel_target = 0.04049 * get_goal_distance() + 97.61662;
+void shoot(int speed, int count) {
 	// Wait until flywheel is at desired speed
+	flywheel = speed;
 	for (; count > 0; count--) {
-		while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
+		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
 		// Shoot
-		indexer.set_value(true);
+		indexer.set_value(false);
 		pros::delay(100);
 		indexer.set_value(false);
 		pros::delay(300);
@@ -423,10 +385,12 @@ void run_roller(){
 	// get the start color of the roller
 	bool start_color = is_red(color.get_hue());
 
+	counter = 0;
+
 	// while start color is not the current color
 	while (start_color == is_red(color.get_hue()) && counter < 200) {
 		// turn roller
-		roller.move(70);
+		roller.move(65);
 		// counter to break if stuck on screw
 		counter++;
 		// delay to allow other tasks to run
@@ -442,6 +406,8 @@ void run_roller(){
 
 	// turn off flashlight
 	color.set_led_pwm(0);
+	pros::delay(10);
+	return;
 }
 
 /**
@@ -456,31 +422,35 @@ void run_roller(){
  * from where it left off.
  */
 void autonomous() {	
-	flywheel_target =0.04049 * get_goal_distance() + 97.61662;
-	//turns to goal and shoots
-	turn_to(286.5);
-	drive_forward(8.5*inch_to_mm);
-	pros::delay(500);
-	shoot(2);
-	pros::delay(500);
-	//turns backwards to intake, angles next position
-	turn_to(48);
-	pros::delay(250);
-	//pick up the three discs and shoots
-	intake1.move_velocity(157);
-	intake2.move_velocity(157);
-	pros::delay(80);
-	//backwards movement, max speed is 180
-	//80-95 max speed and around 150-160 velocity is good for slower and more accurate intake!
-	drive_forward(-47*inch_to_mm, 85);
-	pros::delay(125);
-	//aims at goal again
-	turn_to(327);
-	//gives downtime to move into position
-	pros::delay(250);
-	shoot(3);
-	pros::delay(500);
-	turn_to(47);
+/**
+grabs the three stack and shoots
+grabs the two discs above that and shoots
+grabs the second three stack and shoots
+grabs the two preloads and shoots
+grabs the two remaining discs on the line and shoots
+*/
+
+	shoot(185,2);
+	// drive_forward(-22*inch_to_mm);
+	// pros::delay(100);
+	// turn_to(0);
+	// drive_forward(-6*inch_to_mm);
+	// run_roller();
+	// pros::delay(10);
+	// drive_forward(6*inch_to_mm);
+	// turn_to(15);
+	// pros::delay(20);
+	// shoot(170, 2);
+	// turn_to(0);
+	
+
+
+
+
+	// flywheel_target =0.04049 * get_goal_distance() + 97.61662;
+	// intake1.move_velocity(157);
+	// intake2.move_velocity(157);
+	// //backwards movement, max speed is 180
 
 }
 
@@ -512,9 +482,7 @@ void opcontrol() {
 	// Main Control Loop
 	for (int i = 0; i <= 1;) {
 		sendDataToPy(std::to_string(x_loc) + "\t"+ std::to_string(y_loc)+ "\t" + std::to_string(theta) + "\t" + "text" + "\n");
-		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
-			pros::Task run_flywheel_task(flywheel_task);
-		}
+		
 
 
 		// Debugging for the Intake
@@ -610,7 +578,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-		flywheel_target = 200;
+		flywheel = 185;
 		
 		
 
