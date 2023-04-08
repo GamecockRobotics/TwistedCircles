@@ -615,6 +615,6 @@ void opcontrol() {
 		
 
 		// Delay so other processes can run
-		pros::delay(69);
+		pros::delay(10);
 	}
 }
