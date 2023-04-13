@@ -14,7 +14,7 @@
 #define INTAKER_PORT 5
 #define CATAL_PORT 16
 #define CATAR_PORT 6
-#define GYRO_PORT 18
+#define GYRO_PORT 12
 #define LIMIT_PORT 'g'
 #define VISION1_PORT 11
 #define VISION2_PORT 12
@@ -31,8 +31,8 @@
 #define ROLLER_PORT 11
 
 // Define Ports for Sensors
-#define TRACKING_SIDE_PORT 14
-#define TRACKING_FORWARD_PORT 15
+#define TRACKING_SIDE_PORT 2
+#define TRACKING_FORWARD_PORT 1
 
 enum color { red, blue };
 enum turnType { right, left };
@@ -81,16 +81,16 @@ static constexpr double radian_to_degree = 57.2957795;
 // Measurement in mm of 1 centidegree of the tracking wheels
 static constexpr double track_wheel_size = 0.00609556241;
 // Distance from back tracking wheel to center of robot
-static constexpr double back_track_offset = 150;
+static constexpr double back_track_offset = 30;
 // The angle the robot is facing
-static constexpr double start_theta = 270;
+static constexpr double start_theta = 45; //270
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
 static constexpr int goal_y = 457;
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 1385, y_loc = 3238;
+double x_loc = 3251, y_loc = 1420;
 // Variable to keep track of the Orientation of the Robot
 double theta;
 
@@ -144,12 +144,14 @@ int odmentry() {
 		// Get the sensor values for the tracking wheels and inertial sensor
 		track_forward = tracking_forward.get_position();
 		track_side = tracking_side.get_position();
+
+    pros::lcd::set_text(4, "forward: " + std::to_string(track_forward) + "side: " + std::to_string(track_side));
 		// track_theta = gyro.get_rotation();
 
 		// Converts sensor values to respective standardized units (radians and mm)
 		mm_forward = (prev_track_forward - track_forward)*track_wheel_size;
 		mm_side = (track_side - prev_track_side)*track_wheel_size;
-
+    pros::lcd::set_text(5, "mmforward: " + std::to_string(mm_forward) + "mmside: " + std::to_string(mm_side));
 		// Converts the local movements to the global position
 		y_loc -= cos(theta*degree_to_radian)*mm_side + sin(theta*degree_to_radian)*mm_forward;
 		x_loc += cos(theta*degree_to_radian)*mm_forward - sin(theta*degree_to_radian)*mm_side;
@@ -225,6 +227,50 @@ void turn_to(double angle) {
 }
 
 
+void drive_forward(int distance, int max_speed = 180) {
+
+	// Get initial position 
+	const int target = tracking_forward.get_position() + distance/track_wheel_size;
+	// the difference between the desired position and the current distance
+	double error = target - tracking_forward.get_position();
+	double prev_error;
+	// accumulate total error to correct for it
+	double total_error = 0;
+	// The precision in mm
+	const double threshold = 8;
+	// The constants tuned for PID
+	const double kp = .001, kd = .001;
+	// PID control loop
+	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
+		prev_error = error;
+
+		error = target - tracking_forward.get_position();
+		
+		total_error += (fabs(error) < 1000 ? error : -total_error);
+		pros::lcd::set_text(1, "prev error: " + std::to_string((int)prev_error) + "       " + std::to_string(prev_error*track_wheel_size*mm_to_inch));
+		pros::lcd::set_text(2, "error:      " + std::to_string((int)error) + "       " + std::to_string(error*track_wheel_size*mm_to_inch));
+		pros::lcd::set_text(3, "speed: " + std::to_string(left_target));
+		pros::lcd::set_text(4, "threshold: " + std::to_string(threshold/track_wheel_size));
+
+		pros::lcd::set_text(5, "speed: "+  std::to_string((int)(kp*error)) + " + " + std::to_string((int)(kd * (error - prev_error))) + " = " + std::to_string(kp * error + kd * (error - prev_error)));
+
+
+		left_target = kp * error + kd * (error - prev_error);
+		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
+		right_target = left_target;
+    chassisR(right_target);
+    chassisL(left_target);
+
+		pros::delay(10);
+	}
+	// Zero out motors so the robot does not continue moving
+	left_target = 0;
+	right_target = 0;
+  chassisR(right_target);
+  chassisL(left_target);
+}
+
+
 void rangeSwitchToggle(bool rangeToggle) { rangeSwitch.set_value(rangeToggle); }
 
 void intakeSetting(intakeSetting setting) {
@@ -268,6 +314,8 @@ std::string recieveDataToRaspberryPi() {
  */
 void initialize() {
   pros::lcd::initialize();
+
+  pros::delay(3000);
   pros::lcd::set_text(1, "Hello PROS User!");
 
   pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
@@ -278,6 +326,7 @@ void initialize() {
   cataR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
   rangeSwitch.set_value(false);
+  pros::Task odometry_task(odmentry);
 }
 
 /**
@@ -310,20 +359,8 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
-  while(true){
-    chassisR(127);
-    chassisL(-127);
-    pros::delay(5000);
-    chassisR(0);
-    chassisL(0);
-    pros::delay(1000);
-    chassisR(-127);
-    chassisL(127);
-    pros::delay(5000);
-    chassisR(0);
-    chassisL(0);
-    pros::delay(1000);
-  }
+  
+  
 }
 
 /**
