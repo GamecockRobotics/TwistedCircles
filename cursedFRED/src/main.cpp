@@ -10,24 +10,25 @@
 #include <iostream>
 #include <string>
 
-#define INTAKEL_PORT 6
+#define INTAKEL_PORT 15
 #define INTAKER_PORT 5
-#define CATAL_PORT 19
-#define CATAR_PORT 20
+#define CATAL_PORT 16
+#define CATAR_PORT 6
 #define GYRO_PORT 18
 #define LIMIT_PORT 'g'
-#define VISION1_PORT 11
-#define VISION2_PORT 12
+#define VISION1_PORT 
+#define VISION2_PORT 
 #define RANGE_SWITCH_PORT 'h' // These are pistons
 #define ENDGAME_PORT 'f'      // These are pistons
-#define CHASSIS_L1_PORT 7     // top front motor
-#define CHASSIS_L2_PORT 8     // Top back motor
-#define CHASSIS_L3_PORT 9     // bottom front motor
-#define CHASSIS_L4_PORT 10    // bottom back motor
-#define CHASSIS_R1_PORT 1     // top front motor
-#define CHASSIS_R2_PORT 2     // top back motor
-#define CHASSIS_R3_PORT 3     // bottom front motor
-#define CHASSIS_R4_PORT 4     // bottom back motor
+#define CHASSIS_L1_PORT 18     // top front motor
+#define CHASSIS_L2_PORT 17     // Top back motor
+#define CHASSIS_L3_PORT 20     // bottom front motor
+#define CHASSIS_L4_PORT 19    // bottom back motor
+#define CHASSIS_R1_PORT 8     // top front motor
+#define CHASSIS_R2_PORT 7     // top back motor
+#define CHASSIS_R3_PORT 10     // bottom front motor
+#define CHASSIS_R4_PORT 9     // bottom back motor
+#define ROLLER_PORT 11
 
 enum color { red, blue };
 enum turnType { right, left };
