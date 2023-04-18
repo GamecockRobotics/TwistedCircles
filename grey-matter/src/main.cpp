@@ -229,6 +229,7 @@ int drive () {
 
 
 
+
 void initialize() {
 	
 	pros::lcd::initialize();
@@ -352,6 +353,7 @@ void shoot(int count, int speed) {
 	// Wait until flywheel is at desired speed
 	flywheel.move_velocity(speed);
 	for (; count > 0; count--) {
+		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
 		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
 		// Shoot
 		pros::lcd::set_text(7, "flywheel speed: " + std::to_string(flywheel.get_actual_velocity()));
@@ -513,30 +515,9 @@ grabs the two remaining discs on the line and shoots
 
 
 	// flywheel_target =0.04049 * get_goal_distance() + 97.61662;
-	// //turns to goal and shoots
-	// turn_to(286.5);
-	// drive_forward(8.5*inch_to_mm);
-	// pros::delay(500);
-	// shoot(2);
-	// pros::delay(500);
-	// //turns backwards to intake, angles next position
-	// turn_to(48);
-	// pros::delay(250);
-	// //pick up the three discs and shoots
 	// intake1.move_velocity(157);
 	// intake2.move_velocity(157);
-	// pros::delay(80);
 	// //backwards movement, max speed is 180
-	// //80-95 max speed and around 150-160 velocity is good for slower and more accurate intake!
-	// drive_forward(-47*inch_to_mm, 85);
-	// pros::delay(125);
-	// //aims at goal again
-	// turn_to(327);
-	// //gives downtime to move into position
-	// pros::delay(250);
-	// shoot(3);
-	// pros::delay(500);
-	// turn_to(47);
 
 }
 
@@ -664,7 +645,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-		flywheel.move_velocity(185);
+		flywheel_target = 185;
 		
 		
 
