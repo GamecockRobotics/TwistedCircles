@@ -81,7 +81,7 @@ static constexpr double radian_to_degree = 57.2957795;
 static constexpr double track_wheel_size = 0.00609556241;
 
 // The angle the robot is facing
-static constexpr double start_theta = 225;
+static constexpr double start_theta = 180; //225
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -97,6 +97,8 @@ double theta;
 int left_target = 0, right_target = 0;
 
 bool endgameState = true;
+
+bool cataFlag = false;
 
 void tareMotors() {
   // Resets all drive train motor positions to 0
@@ -168,6 +170,26 @@ int odometry() {
 	return 0;
 }
 
+int cataReset(){
+  while (true) {
+      pros::lcd::set_text(1, "cataFlag: " + std::to_string((cataFlag)));
+      if (cataFlag) {
+        cataL.move_velocity(600);
+        cataR.move_velocity(600);
+        if (!SlipGearSensor.get_value())
+          cataFlag = false;
+      } else if(!SlipGearSensor.get_value()){
+        cataL.move_velocity(600);
+        cataR.move_velocity(600);
+      }else{
+        cataL.brake();
+        cataR.brake();
+      }
+    pros::delay(10);
+  }
+  return 0;
+}
+
 
 /**
  * Gets the distance between two points
@@ -216,6 +238,14 @@ std::string recieveDataToRaspberryPi() {
   return data;
 }
 
+void shoot(){
+    // Moves catapult for 1.5 seconds, which launches the catapult
+    cataL.move_velocity(600);
+    cataR.move_velocity(600);
+    pros::delay(1500);
+    // Keeps spinning the catapult until button is pressed
+    
+}
 
 
 /**
@@ -226,7 +256,7 @@ std::string recieveDataToRaspberryPi() {
  */
 void initialize() {
   pros::lcd::initialize();
-  pros::lcd::set_text(1, "Hello PROS User!");
+  //pros::lcd::set_text(1, "Hello PROS User!");
 
   pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
 
@@ -235,7 +265,8 @@ void initialize() {
   cataL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
   cataR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
 
-  	pros::Task odometry_task(odometry);
+  pros::Task odometry_task(odometry);
+  pros::Task cata_task(cataReset);
 }
 
 /**
@@ -353,7 +384,10 @@ void turn_to(double angle) {
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+  
+
+}
 
 /**
 
@@ -414,24 +448,24 @@ void opcontrol() {
   // 	pros::delay(20);
   // }
 
-  int cataFlag = 0;
+  
   pros::Task drive(driveTask);
   while (true) {
 
     // Catapult pull back on Button Sensor
-    if (!SlipGearSensor.get_value()) {
-      cataFlag = 1;
-      cataL.move_velocity(600);
-      cataR.move_velocity(600);
-      pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-    } else if (SlipGearSensor.get_value()) {
-      cataFlag = 0;
-      // intakeLock = 0;
-      cataL.brake();
-      cataR.brake();
-      pros::lcd::set_text(3,
-                          "down" + std::to_string(SlipGearSensor.get_value()));
-    }
+    // if (!SlipGearSensor.get_value()) {
+    //   cataFlag = 1;
+    //   cataL.move_velocity(600);
+    //   cataR.move_velocity(600);
+    //   pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
+    // } else if (SlipGearSensor.get_value()) {
+    //   cataFlag = 0;
+    //   // intakeLock = 0;
+    //   cataL.brake();
+    //   cataR.brake();
+    //   pros::lcd::set_text(3,
+    //                       "down" + std::to_string(SlipGearSensor.get_value()));
+    // }
     // Intake
     if (controller.get_digital(DIGITAL_L1)) {
       intake_1.move(-110);
@@ -444,12 +478,11 @@ void opcontrol() {
       intake_2.brake();
     }
 
-    if (controller.get_digital(DIGITAL_R1) && cataFlag == 0) {
-      cataFlag = 0;
-      // intakeLock = 1;
-      cataL.move_velocity(600);
-      cataR.move_velocity(600);
+
+    if (controller.get_digital_new_press(DIGITAL_R1)) {
+      cataFlag = true;
     }
+    
     if (controller.get_digital(DIGITAL_R2)) {
       roller = 127;
     } else {
