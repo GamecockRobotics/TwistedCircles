@@ -309,7 +309,8 @@
       }
     },
     "upload_options": {
-      "icon": "robot"
+      "icon": "robot",
+      "slot": 1
     }
   }
 }

@@ -48,10 +48,10 @@ pros::Motor chassis_l2(CHASSIS_L2_PORT);
 pros::Motor chassis_l3(CHASSIS_L3_PORT, true);
 pros::Motor chassis_l4(CHASSIS_L4_PORT, true);
 
-pros::Motor cataL(CATAL_PORT);
-pros::Motor cataR(CATAR_PORT, true);
-pros::Motor intake_1(INTAKEL_PORT, true);
-pros::Motor intake_2(INTAKER_PORT);
+pros::Motor cataL(CATAL_PORT, true);
+pros::Motor cataR(CATAR_PORT);
+pros::Motor intake_1(INTAKEL_PORT);
+pros::Motor intake_2(INTAKER_PORT,true);
 pros::ADIDigitalOut endgame(ENDGAME_PORT);
 pros::Imu gyro(GYRO_PORT);
 pros::ADIDigitalOut rangeSwitch(RANGE_SWITCH_PORT);
