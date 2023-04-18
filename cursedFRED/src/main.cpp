@@ -14,12 +14,12 @@
 #define INTAKER_PORT 5
 #define CATAL_PORT 16
 #define CATAR_PORT 6
-#define GYRO_PORT 18
+#define GYRO_PORT 12
 #define LIMIT_PORT 'g'
 #define VISION1_PORT 
 #define VISION2_PORT 
-#define RANGE_SWITCH_PORT 'h' // These are pistons
-#define ENDGAME_PORT 'f'      // These are pistons
+#define RANGE_SWITCH_PORT 'f' // These are pistons
+#define ENDGAME_PORT 'a'      // These are pistons
 #define CHASSIS_L1_PORT 18     // top front motor
 #define CHASSIS_L2_PORT 17     // Top back motor
 #define CHASSIS_L3_PORT 20     // bottom front motor
@@ -29,6 +29,9 @@
 #define CHASSIS_R3_PORT 10     // bottom front motor
 #define CHASSIS_R4_PORT 9     // bottom back motor
 #define ROLLER_PORT 11
+#define TRACKING_SIDE_PORT 2
+#define TRACKING_FORWARD_PORT 1
+
 
 enum color { red, blue };
 enum turnType { right, left };
