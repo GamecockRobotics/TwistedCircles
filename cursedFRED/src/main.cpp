@@ -52,18 +52,49 @@ pros::Motor cataL(CATAL_PORT, true);
 pros::Motor cataR(CATAR_PORT);
 pros::Motor intake_1(INTAKEL_PORT);
 pros::Motor intake_2(INTAKER_PORT,true);
+pros::Motor roller(ROLLER_PORT);
 pros::ADIDigitalOut endgame(ENDGAME_PORT);
 pros::Imu gyro(GYRO_PORT);
 pros::ADIDigitalOut rangeSwitch(RANGE_SWITCH_PORT);
 pros::ADIDigitalIn SlipGearSensor(LIMIT_PORT);
 
+pros::Rotation tracking_side(TRACKING_SIDE_PORT);
+pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);
+
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
-double ycord0 = 0;
-double xcord0 = 0;
-double ycord1 = 0;
-double xcord1 = 0;
-double theta = 0;
+// The value of pi
+static constexpr double pi = 3.1415926535897932;
+// The value of pi divided by 2
+static constexpr double pi2 = 1.5707963267948966;
+// Converts inches to millimeters
+static constexpr double inch_to_mm = 25.4;
+// Converts millimeters to inches
+static constexpr double mm_to_inch = 0.0393700787;
+// Converts degrees to radians
+static constexpr double degree_to_radian = 0.01745329252;
+// Converts centidegrees to radians
+static constexpr double centidegree_to_radian = .0001745329252;
+// Converts radians to degrees
+static constexpr double radian_to_degree = 57.2957795;
+// Measurement in mm of 1 centidegree of the tracking wheels
+static constexpr double track_wheel_size = 0.00609556241;
+
+// The angle the robot is facing
+static constexpr double start_theta = 180;
+// The x coordinate of our alliance goal in millimeters
+static constexpr int goal_x = 457;
+// The y coordinate of our alliance goal in millimeters
+static constexpr int goal_y = 457;
+
+
+// Varaiables to keep track of the Location of the Robot
+double x_loc = 3253, y_loc = 915;
+// Variable to keep track of the Orientation of the Robot
+double theta;
+
+// Variables to store the target speed for each side of the chassis
+int left_target = 0, right_target = 0;
 
 bool endgameState = true;
 
@@ -79,11 +110,64 @@ void tareMotors() {
   chassis_r4.tare_position();
 }
 
-int odmentry() {
-  int value = 0;
+/**
+ * Task keeps track of the location and heading of the robot
+ */
+int odometry() {
+	// Sets gyro rotation to starting angle of robot
+	gyro.set_rotation(start_theta);
+	// Gets the position of the tracking wheels
+	int track_side = tracking_side.get_position(), track_forward = tracking_forward.get_position();
+	// Stores the previous iteration of tracking wheel positions
+	int prev_track_side = track_side, prev_track_forward = track_forward;
+	// Sensor values for the movement of the tracking wheels.
+	double mm_forward = 0, mm_side = 0;
+	// Odometry control loop
+	while (true) {
+		// Get the sensor values for the tracking wheels and inertial sensor
+		track_forward = tracking_forward.get_position();
+		track_side = tracking_side.get_position();
+		// track_theta = gyro.get_rotation();
 
-  return value;
+		// Converts sensor values to respective standardized units (radians and mm)
+		mm_forward = (prev_track_forward - track_forward)*track_wheel_size;
+		mm_side = (track_side - prev_track_side)*track_wheel_size;
+
+		// Converts the local movements to the global position
+		y_loc -= cos(theta*degree_to_radian)*mm_side + sin(theta*degree_to_radian)*mm_forward;
+		x_loc += cos(theta*degree_to_radian)*mm_forward - sin(theta*degree_to_radian)*mm_side;
+		theta = gyro.get_rotation();
+
+		// Stores current sensor values to previous variables for use in next iteration
+		prev_track_forward = track_forward;
+		prev_track_side = track_side;
+
+		// Delay so that other tasks can run
+		pros::delay(10);
+
+		pros::lcd::set_text(0, 
+		"x: " + std::to_string((int)(x_loc*mm_to_inch)) + 
+		"    y: " + std::to_string((int)(y_loc*mm_to_inch)) + 
+		"    theta: " + std::to_string((int)theta));
+
+		
+	}
+	return 0;
 }
+
+
+/**
+ * Gets the distance between two points
+ * 
+ * @param x0 the x coordinate of the first point
+ * @param y0 the y coordinate of the first point
+ * @param x1 the x coordinate of the second point
+ * @param y1 the y coordinate of the second point
+ */
+double get_distance(double x0, double y0, double x1, double y1) {
+	return sqrt((x0-x1)*(x0-x1)+(y0-y1)*(y0-y1));
+}
+
 
 void rangeSwitchToggle(bool rangeToggle) { rangeSwitch.set_value(rangeToggle); }
 
@@ -119,6 +203,8 @@ std::string recieveDataToRaspberryPi() {
   return data;
 }
 
+
+
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
@@ -131,14 +217,12 @@ void initialize() {
 
   pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
 
-  ycord0 = 0;
-  xcord0 = 0;
-  ycord1 = 0;
-  xcord1 = 0;
-  theta = 0;
+  pros::delay(3000);
 
   cataL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
   cataR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+
+  	pros::Task odometry_task(odometry);
 }
 
 /**
@@ -158,6 +242,84 @@ void disabled() {}
  * starts.
  */
 void competition_initialize() {}
+
+/**
+ * Drives the robot forward a given distance
+ * This function is blocking
+ * 
+ * @param distance the distance to travel in mm
+ */
+void drive_forward(int distance, int max_speed = 180) {
+
+	// Get initial position 
+	const int target = tracking_forward.get_position() + distance/track_wheel_size;
+	// the difference between the desired position and the current distance
+	double error = target - tracking_forward.get_position();
+	double prev_error;
+	// accumulate total error to correct for it
+	double total_error = 0;
+	// The precision in mm
+	const double threshold = 8;
+	// The constants tuned for PID
+	const double kp = .001, kd = .001;
+	// PID control loop
+	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
+		prev_error = error;
+
+		error = target - tracking_forward.get_position();
+		
+		total_error += (fabs(error) < 1000 ? error : -total_error);
+		pros::lcd::set_text(1, "prev error: " + std::to_string((int)prev_error) + "       " + std::to_string(prev_error*track_wheel_size*mm_to_inch));
+		pros::lcd::set_text(2, "error:      " + std::to_string((int)error) + "       " + std::to_string(error*track_wheel_size*mm_to_inch));
+		pros::lcd::set_text(3, "speed: " + std::to_string(left_target));
+		pros::lcd::set_text(4, "threshold: " + std::to_string(threshold/track_wheel_size));
+
+		pros::lcd::set_text(5, "speed: "+  std::to_string((int)(kp*error)) + " + " + std::to_string((int)(kd * (error - prev_error))) + " = " + std::to_string(kp * error + kd * (error - prev_error)));
+
+
+		left_target = kp * error + kd * (error - prev_error);
+		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
+		right_target = left_target;
+		pros::delay(10);
+	}
+	// Zero out motors so the robot does not continue moving
+	left_target = 0;
+	right_target = 0;
+}
+
+/**
+ * Turns to face specific orientation
+ * Function is Blocking
+ *
+ * @param angle the angle that the robot should turn to
+ */
+void turn_to(double angle) {
+	double error = 180 - fmod((angle+180-(fmod(theta, 360))),360);
+	double prev_error;
+	double total_error = 0;
+	// The precision in degrees required to exit the loop
+	const double threshold = 1;
+	// The constants tuned for PID
+	// const double kp = 0.84, ki = 0.04, kd = 0.080;
+	const double kp = 1, ki = 0.05, kd = 2;
+
+	// PID control loop
+	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
+		prev_error = error;
+		error = 180 - fmod((angle + 180 - (fmod(theta, 360))), 360);
+		total_error += (fabs(error) < 2 ? error : 0);
+
+		pros::lcd::set_text(2, "error: " + std::to_string(error));
+
+		left_target = -kp * error - kd * (error - prev_error) - ki * total_error;
+		right_target = kp * error + kd * (error - prev_error) + ki * total_error;
+		pros::delay(10);
+	}
+	// Zero out motors so the robot does not continue moving
+	left_target = 0;
+	right_target = 0;
+
+}
 
 /**
  * Runs the user autonomous code. This function will be started in its own task
@@ -268,9 +430,11 @@ void opcontrol() {
       cataR.move_velocity(600);
     }
     if (controller.get_digital(DIGITAL_R2)) {
-      cataL.move_velocity(-600);
-      cataR.move_velocity(-600);
+      roller = 127;
+    } else {
+      roller = 0;
     }
+
 
     // // String Launcher
     // if (controller.get_digital(DIGITAL_RIGHT) &&
