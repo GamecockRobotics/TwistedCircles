@@ -42,6 +42,8 @@
 #define ENDGAME_PORT 4
 #define FLYWHEEL_POTENTIOMETER_PORT 3
 
+// Define Enums
+enum intake_setting {on, off, reverse};
 
 // The value of pi
 static constexpr double pi = 3.1415926535897932;
@@ -62,7 +64,7 @@ static constexpr double track_wheel_size = 0.00609556241;
 // Distance from back tracking wheel to center of robot
 static constexpr double back_track_offset = 150;
 // The angle the robot is facing
-static constexpr double start_theta = 270;
+static constexpr double start_theta = 180;
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -70,7 +72,7 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 1385, y_loc = 3238;
+double x_loc = 3253, y_loc = 915;
 // Variable to keep track of the Orientation of the Robot
 double theta;
 
@@ -225,45 +227,7 @@ int drive () {
 	return 0;
 }
 
-/**
- * Task to control flywheel speed using take back half algorithm
- */
-int flywheel_task () {
-	// take back half constant for getting close to desired speed
-	int tbh = 6000;
-	// the difference between the desired and actual speed
-	int error;
-	// the actual voltage to set the motor speed to
-	int output = 0;
-	// Control loop for flywheel
-	while (true) {
-		// calculate differences in desired speed
-		error = flywheel_target - flywheel.get_actual_velocity();
 
-		// accumulate voltage to get to good speed
-		output += error;
-		
-		// If going to fast slow down some
-		if (error < -flywheel_target/25) {
-			output = (output+tbh)/2;
-			tbh = output;
-		}
-
-		// Prevent exceeding maximum voltage to not cause errors in calculations
-		if (output > 12000) output = 12000;
-
-		// pros::lcd::set_text(5, "flywheel: " + std::to_string(flywheel.get_actual_velocity()));
-
-		// Set Flywheel speed to calculated value
-		// flywheel.move_voltage(output);
-
-		flywheel.move_velocity(flywheel_target);
-
-		// Delay so other processes can run
-		pros::delay(10);
-	}
-	return 0;
-}
 
 void initialize() {
 	
@@ -278,7 +242,6 @@ void initialize() {
 
 	pros::Task drive_task(drive);
 	pros::Task odometry_task(odometry);
-	pros::Task run_flywheel_task(flywheel_task);
 }
 
 /**
@@ -385,13 +348,14 @@ void drive_forward(int distance, int max_speed = 180) {
  * @param speed the speed the flywheel should shoot at
  * @param count the number of times the robot should shoot at that speed
  */
-void shoot(int count) {
-	flywheel_target = 0.04049 * get_goal_distance() + 97.61662;
+void shoot(int count, int speed) {
 	// Wait until flywheel is at desired speed
+	flywheel.move_velocity(speed);
 	for (; count > 0; count--) {
-		while (fabs(flywheel_target - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
+		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
 		// Shoot
-		indexer.set_value(false);
+		pros::lcd::set_text(7, "flywheel speed: " + std::to_string(flywheel.get_actual_velocity()));
+		indexer.set_value(true);
 		pros::delay(100);
 		indexer.set_value(false);
 		pros::delay(300);
@@ -450,6 +414,24 @@ void run_roller(){
 }
 
 /**
+ * Autonomous function to turn on and off the intake
+ */
+void intake_toggle(intake_setting setting) {
+	if (setting == on) {
+		intake1 = 127;
+		intake2 = 127;
+	}
+	else if (setting == reverse) {
+		intake1 = -127;
+		intake2 = -127;
+	}
+	else {
+		intake1 = 0;
+		intake2 = 0;
+	}
+}
+
+/**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
  * the Field Management System or the VEX Competition Switch in the autonomous
@@ -468,20 +450,65 @@ grabs the second three stack and shoots
 grabs the two preloads and shoots
 grabs the two remaining discs on the line and shoots
 */
-	flywheel_target =0.04049 * get_goal_distance() + 97.61662;
-	drive_forward(-22*inch_to_mm);
-	pros::delay(100);
-	turn_to(0);
-	drive_forward(-6*inch_to_mm);
-	run_roller();
-	pros::delay(10);
-	drive_forward(6*inch_to_mm);
-	turn_to(15);
-	pros::delay(20);
-	shoot(2);
-	turn_to(0);
+	flywheel_target = 250;
+	// drive_forward(-22*inch_to_mm);
+	// pros::delay(100);
+	// turn_to(0);
+	// drive_forward(-6*inch_to_mm);
+	// run_roller();
+	// pros::delay(10);
+	// drive_forward(6*inch_to_mm);
+	// turn_to(15);
+	// pros::delay(20);
+	// shoot(2);
+	// turn_to(0);
+
+	/*
+	TODO: Auton Plan
+	Pick up 3 stack (DONE)
+	Get Roller
+	Move Closer to center
+	Shoot
+	Pick up 2 mid disks
+	shoot
+	Pick up 3 stack on our side
+	shoot
+	Pick up Preload (Next to Low goal)
+	Shoot
+	Pick up 3 along low goal
+	Shoot
+	end
+	*/
+	
+	// intake_toggle(reverse);
+	// drive_forward(-210, 500);
+	// pros::delay(100);
+	// intake_toggle(off);	// Seperating reverse and on to avoid burnout
+	// pros::delay(500);
+	// intake_toggle(on);
+	// pros::delay(500);
+	// intake_toggle(off);
+	// drive_forward(100, 500);
+	// intake_toggle(on);
+	// pros::delay(2000);
+	// intake_toggle(off);
+	// pros::delay(300);
+	// intake_toggle(reverse);
+	// pros::delay(100);
+	// drive_forward(-100, 500);
+	// intake_toggle(on);
+	// pros::delay(3000);
+	// intake_toggle(off);
+	// pros::delay(100);
+	// drive_forward(100, 500);
+	// pros::delay(500);
+	// turn_to(340);
+	// pros::delay(100);
+	pros::delay(4000);
+	shoot(3, 200);
 	
 
+	
 
 
 
@@ -541,9 +568,7 @@ void opcontrol() {
 	// Main Control Loop
 	for (int i = 0; i <= 1;) {
 		sendDataToPy(std::to_string(x_loc) + "\t"+ std::to_string(y_loc)+ "\t" + std::to_string(theta) + "\t" + "text" + "\n");
-		if (controller.get_digital_new_press(DIGITAL_DOWN)) {
-			pros::Task run_flywheel_task(flywheel_task);
-		}
+		
 
 
 		// Debugging for the Intake
@@ -639,7 +664,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-		flywheel_target = 185;
+		flywheel.move_velocity(185);
 		
 		
 
