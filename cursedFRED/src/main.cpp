@@ -239,12 +239,11 @@ std::string recieveDataToRaspberryPi() {
 }
 
 void shoot(){
-    // Moves catapult for 1.5 seconds, which launches the catapult
-    cataL.move_velocity(600);
-    cataR.move_velocity(600);
-    pros::delay(1500);
-    // Keeps spinning the catapult until button is pressed
-    
+    while(!SlipGearSensor.get_value()){
+      pros::delay(10);
+    }
+    cataFlag = true;
+
 }
 
 
@@ -385,6 +384,9 @@ void turn_to(double angle) {
  * from where it left off.
  */
 void autonomous() {
+  //roller = 127;
+  //pros::delay(5000);
+  shoot();
   
 
 }
