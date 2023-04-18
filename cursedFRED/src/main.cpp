@@ -81,7 +81,7 @@ static constexpr double radian_to_degree = 57.2957795;
 static constexpr double track_wheel_size = 0.00609556241;
 
 // The angle the robot is facing
-static constexpr double start_theta = 180;
+static constexpr double start_theta = 225;
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -89,7 +89,7 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 3253, y_loc = 915;
+double x_loc = 3253, y_loc = 1525;
 // Variable to keep track of the Orientation of the Robot
 double theta;
 
@@ -110,6 +110,19 @@ void tareMotors() {
   chassis_r4.tare_position();
 }
 
+void chassisL(int speed){
+  chassis_l1 = speed;
+  chassis_l2 = speed;
+  chassis_l3 = speed;
+  chassis_l4 = speed;
+}
+
+void chassisR(int speed){
+  chassis_r1 = speed;
+  chassis_r2 = speed;
+  chassis_r3 = speed;
+  chassis_r4 = speed;
+}
 /**
  * Task keeps track of the location and heading of the robot
  */
@@ -279,12 +292,16 @@ void drive_forward(int distance, int max_speed = 180) {
 
 		left_target = kp * error + kd * (error - prev_error);
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
+    chassisL(left_target);
 		right_target = left_target;
+    chassisR(right_target);
 		pros::delay(10);
 	}
 	// Zero out motors so the robot does not continue moving
 	left_target = 0;
 	right_target = 0;
+  chassisL(left_target);
+  chassisR(right_target);
 }
 
 /**
@@ -313,11 +330,15 @@ void turn_to(double angle) {
 
 		left_target = -kp * error - kd * (error - prev_error) - ki * total_error;
 		right_target = kp * error + kd * (error - prev_error) + ki * total_error;
+    chassisL(left_target);
+    chassisR(right_target);
 		pros::delay(10);
 	}
 	// Zero out motors so the robot does not continue moving
 	left_target = 0;
 	right_target = 0;
+  chassisL(left_target);
+  chassisR(right_target);
 
 }
 
