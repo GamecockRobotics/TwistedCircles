@@ -386,7 +386,9 @@ void turn_to(double angle) {
 void autonomous() {
   //roller = 127;
   //pros::delay(5000);
-  shoot();
+  //shoot();
+  drive_forward(10);
+
   
 
 }
