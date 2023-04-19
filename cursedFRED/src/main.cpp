@@ -59,7 +59,7 @@ pros::ADIDigitalOut rangeSwitch(RANGE_SWITCH_PORT);
 pros::ADIDigitalIn SlipGearSensor(LIMIT_PORT);
 
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
-pros::Rotation tracking_forward(TRACKING_FORWARD_PORT);
+pros::Rotation tracking_forward(TRACKING_FORWARD_PORT, true);
 
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
@@ -297,19 +297,19 @@ void drive_forward(int distance, int max_speed = 180) {
 	// Get initial position 
 	const int target = tracking_forward.get_position() + distance/track_wheel_size;
 	// the difference between the desired position and the current distance
-	double error =  tracking_forward.get_position() - target;
+	double error =  target - tracking_forward.get_position();
 	double prev_error;
 	// accumulate total error to correct for it
 	double total_error = 0;
 	// The precision in mm
 	const double threshold = 8;
 	// The constants tuned for PID
-	const double kp = .001, kd = .001;
+	const double kp = .0019, kd = .002;
 	// PID control loop
 	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
 
-		error = tracking_forward.get_position() - target;
+		error = target - tracking_forward.get_position();
 		
 		total_error += (fabs(error) < 1000 ? error : -total_error);
 		pros::lcd::set_text(1, "prev error: " + std::to_string((int)prev_error) + "       " + std::to_string(prev_error*track_wheel_size*mm_to_inch));
@@ -322,8 +322,8 @@ void drive_forward(int distance, int max_speed = 180) {
 
 		left_target = kp * error + kd * (error - prev_error);
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
-    chassisL(-left_target);
-		right_target = -left_target;
+    chassisL(left_target);
+		right_target = left_target;
     chassisR(right_target);
 		pros::delay(10);
 	}
@@ -348,7 +348,7 @@ void turn_to(double angle) {
 	const double threshold = 1;
 	// The constants tuned for PID
 	// const double kp = 0.84, ki = 0.04, kd = 0.080;
-	const double kp = 1, ki = 0.05, kd = 2;
+	const double kp = 1.3, ki = 0.05, kd = 1.2;
 
 	// PID control loop
 	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
@@ -388,6 +388,8 @@ void autonomous() {
   //pros::delay(5000);
   //shoot();
   drive_forward(610);
+  pros::delay(500);
+  turn_to(90);
 
   
 
