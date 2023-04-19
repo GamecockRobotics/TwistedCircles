@@ -297,7 +297,7 @@ void drive_forward(int distance, int max_speed = 180) {
 	// Get initial position 
 	const int target = tracking_forward.get_position() + distance/track_wheel_size;
 	// the difference between the desired position and the current distance
-	double error = target - tracking_forward.get_position();
+	double error =  tracking_forward.get_position() - target;
 	double prev_error;
 	// accumulate total error to correct for it
 	double total_error = 0;
@@ -309,7 +309,7 @@ void drive_forward(int distance, int max_speed = 180) {
 	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
 
-		error = target - tracking_forward.get_position();
+		error = tracking_forward.get_position() - target;
 		
 		total_error += (fabs(error) < 1000 ? error : -total_error);
 		pros::lcd::set_text(1, "prev error: " + std::to_string((int)prev_error) + "       " + std::to_string(prev_error*track_wheel_size*mm_to_inch));
@@ -322,8 +322,8 @@ void drive_forward(int distance, int max_speed = 180) {
 
 		left_target = kp * error + kd * (error - prev_error);
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
-    chassisL(left_target);
-		right_target = left_target;
+    chassisL(-left_target);
+		right_target = -left_target;
     chassisR(right_target);
 		pros::delay(10);
 	}
@@ -387,7 +387,7 @@ void autonomous() {
   //roller = 127;
   //pros::delay(5000);
   //shoot();
-  drive_forward(10);
+  drive_forward(610);
 
   
 
