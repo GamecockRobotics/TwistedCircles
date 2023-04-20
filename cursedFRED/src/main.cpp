@@ -304,10 +304,12 @@ void drive_forward(int distance, int max_speed = 180) {
 	// The precision in mm
 	const double threshold = 8;
 	// The constants tuned for PID
-	const double kp = .0019, kd = .002;
+	const double kp = .002, kd = .002, ki = .001;
 	// PID control loop
 	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
+
+    if (fabs(error) < 4000) total_error += error;
 
 		error = target - tracking_forward.get_position();
 		
@@ -320,7 +322,7 @@ void drive_forward(int distance, int max_speed = 180) {
 		pros::lcd::set_text(5, "speed: "+  std::to_string((int)(kp*error)) + " + " + std::to_string((int)(kd * (error - prev_error))) + " = " + std::to_string(kp * error + kd * (error - prev_error)));
 
 
-		left_target = kp * error + kd * (error - prev_error);
+		left_target = kp * error + kd * (error - prev_error) + ki * total_error;
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
     chassisL(left_target);
 		right_target = left_target;
@@ -348,13 +350,13 @@ void turn_to(double angle) {
 	const double threshold = 1;
 	// The constants tuned for PID
 	// const double kp = 0.84, ki = 0.04, kd = 0.080;
-	const double kp = 1.3, ki = 0.05, kd = 1.2;
+	const double kp = 3.5, ki = 0.1, kd = 20;
 
 	// PID control loop
 	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
 		prev_error = error;
 		error = 180 - fmod((angle + 180 - (fmod(theta, 360))), 360);
-		total_error += (fabs(error) < 2 ? error : 0);
+		total_error += (fabs(error) < 4.5 ? error : 0);
 
 		pros::lcd::set_text(2, "error: " + std::to_string(error));
 
@@ -369,6 +371,7 @@ void turn_to(double angle) {
 	right_target = 0;
   chassisL(left_target);
   chassisR(right_target);
+  pros::lcd::set_text(7, "exit");
 
 }
 
@@ -387,9 +390,10 @@ void autonomous() {
   //roller = 127;
   //pros::delay(5000);
   //shoot();
-  drive_forward(610);
-  pros::delay(500);
   turn_to(90);
+  //drive_forward(610);
+  pros::delay(500);
+  //turn_to(90);
 
   
 
@@ -458,30 +462,20 @@ void opcontrol() {
   pros::Task drive(driveTask);
   while (true) {
 
-    // Catapult pull back on Button Sensor
-    // if (!SlipGearSensor.get_value()) {
-    //   cataFlag = 1;
-    //   cataL.move_velocity(600);
-    //   cataR.move_velocity(600);
-    //   pros::lcd::set_text(3, "up" + std::to_string(SlipGearSensor.get_value()));
-    // } else if (SlipGearSensor.get_value()) {
-    //   cataFlag = 0;
-    //   // intakeLock = 0;
-    //   cataL.brake();
-    //   cataR.brake();
-    //   pros::lcd::set_text(3,
-    //                       "down" + std::to_string(SlipGearSensor.get_value()));
-    // }
+  
     // Intake
     if (controller.get_digital(DIGITAL_L1)) {
       intake_1.move(-110);
       intake_2.move(-110);
+      roller = 127;
     } else if (controller.get_digital(DIGITAL_L2)) {
       intake_1.move(127);
       intake_2.move(127);
+      roller = -127;
     } else {
       intake_1.brake();
       intake_2.brake();
+      roller = 0;
     }
 
 
@@ -489,11 +483,7 @@ void opcontrol() {
       cataFlag = true;
     }
     
-    if (controller.get_digital(DIGITAL_R2)) {
-      roller = 127;
-    } else {
-      roller = 0;
-    }
+    
 
 
     // // String Launcher
@@ -508,9 +498,9 @@ void opcontrol() {
     //   endgame.set_value(endgameState);
     // }
 
-    // if (controller.get_digital(DIGITAL_X)) {
-    //   rangeSwitchToggle(true);
-    // }
+    if (controller.get_digital(DIGITAL_X)) {
+      rangeSwitchToggle(true);
+    }
 
     pros::delay(20);
   }
