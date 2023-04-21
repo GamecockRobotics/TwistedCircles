@@ -98,7 +98,7 @@ double theta;
 // Variables to store the target speed for each side of the chassis
 int left_target = 0, right_target = 0;
 
-bool endgameState = true;
+bool endgameState = true, rangestate = true;
 
 bool cataFlag = false;
 
@@ -256,6 +256,8 @@ void initialize() {
   pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
 
   pros::delay(3000);
+
+  rangeSwitchToggle(rangestate);
 
   cataL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
   cataR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
@@ -425,24 +427,34 @@ void autonomous() {
   //pros::delay(500);
   //turn_to(90);
 
+  
+  drive_forward(390);  //range between 350-400
   intakeSetting(on);
-  drive_forward(385);
-  pros::delay(500);
-  drive_forward(-200);
+  pros::delay(700);
+
+  drive_forward(-110);
   turn_to(197);
-  pros::delay(200);
+  pros::delay(1000);
   shoot();
-  pros::delay(200);
+  pros::delay(500);
+  // turn_to(225);
+  // drive_forward(-75);
+  // pros::delay(200);
   turn_to(132);
+  pros::delay(1000);
   drive_forward(915, 40);
   pros::delay(200);
   turn_to(222);
-  pros::delay(100);
+  drive_forward(-50);
+  pros::delay(1000);
   shoot();
   //shoot the middle 3
   pros::delay(200);
-  turn_to(45);
-  drive_forward(720,50);
+  turn_to(0);
+  pros::delay(200);
+  drive_forward(720);
+  turn_to(90);
+  // 
 
   // //NEED TO TEST
   // 
