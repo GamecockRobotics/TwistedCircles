@@ -16,7 +16,7 @@
 #define CATAR_PORT 6
 #define GYRO_PORT 12
 #define LIMIT_PORT 'g'
-#define VISION1_PORT 
+#define VISION1_PORT 14
 #define VISION2_PORT 
 #define RANGE_SWITCH_PORT 'f' // These are pistons
 #define ENDGAME_PORT 'a'      // These are pistons
@@ -34,7 +34,7 @@
 
 
 enum color { red, blue };
-enum turnType { right, left };
+
 enum intakeSetting { on, off };
 enum opticalType { rightSen, leftSen };
 
@@ -57,6 +57,8 @@ pros::ADIDigitalOut endgame(ENDGAME_PORT);
 pros::Imu gyro(GYRO_PORT);
 pros::ADIDigitalOut rangeSwitch(RANGE_SWITCH_PORT);
 pros::ADIDigitalIn SlipGearSensor(LIMIT_PORT);
+
+pros::Optical vision(VISION1_PORT);
 
 pros::Rotation tracking_side(TRACKING_SIDE_PORT);
 pros::Rotation tracking_forward(TRACKING_FORWARD_PORT, true);
@@ -81,7 +83,7 @@ static constexpr double radian_to_degree = 57.2957795;
 static constexpr double track_wheel_size = 0.00609556241;
 
 // The angle the robot is facing
-static constexpr double start_theta = 180; //225
+static constexpr double start_theta = 225; 
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -89,7 +91,7 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 3253, y_loc = 1525;
+double x_loc = 3263, y_loc = 1420;
 // Variable to keep track of the Orientation of the Robot
 double theta;
 
@@ -217,12 +219,6 @@ void intakeSetting(intakeSetting setting) {
   }
 }
 
-color get_color(double hue) {
-  // Returns red or blue based off of the hue value seen by the vision sensor
-  return (hue < 20) ? red : blue;
-}
-
-std::string intToString(int number) { return std::to_string(number); }
 
 void sendDataToRaspberryPi(int value) {
   std::string data;
@@ -310,17 +306,17 @@ void drive_forward(int distance, int max_speed = 180) {
 		prev_error = error;
 
     if (fabs(error) < 4000) total_error += error;
+    pros::lcd::set_text(7, std::to_string(total_error));
 
 		error = target - tracking_forward.get_position();
 		
-		total_error += (fabs(error) < 1000 ? error : -total_error);
 		pros::lcd::set_text(1, "prev error: " + std::to_string((int)prev_error) + "       " + std::to_string(prev_error*track_wheel_size*mm_to_inch));
 		pros::lcd::set_text(2, "error:      " + std::to_string((int)error) + "       " + std::to_string(error*track_wheel_size*mm_to_inch));
 		pros::lcd::set_text(3, "speed: " + std::to_string(left_target));
 		pros::lcd::set_text(4, "threshold: " + std::to_string(threshold/track_wheel_size));
 
 		pros::lcd::set_text(5, "speed: "+  std::to_string((int)(kp*error)) + " + " + std::to_string((int)(kd * (error - prev_error))) + " = " + std::to_string(kp * error + kd * (error - prev_error)));
-
+    pros::lcd::set_text(6, "ki: " + std::to_string(ki*total_error));
 
 		left_target = kp * error + kd * (error - prev_error) + ki * total_error;
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
@@ -375,6 +371,40 @@ void turn_to(double angle) {
 
 }
 
+color get_color(double hue) {
+    // Returns red or blue based off of the hue value seen by the vision sensor
+    return (hue > 300 || hue < 20) ? red : blue;
+}
+
+void runRoller(int speed = 75){
+    // Scores roller if the roller is at competition start position
+    // Turns on flashlight
+    vision.set_led_pwm(100);
+    pros::lcd::set_text(4, std::to_string(vision.get_hue()));
+
+    // Slowly backs into roller
+    chassisL(-20);
+    chassisR(-20);
+
+    int counter = 0;
+    bool startColor;
+    startColor = get_color(vision.get_hue());
+
+    // Spins roller until it sees a different color than what it started at    
+
+    while (startColor == get_color(vision.get_hue()) && counter < 200) {
+        roller = speed;
+        counter++;
+        pros::delay(10);
+    }
+
+    // Stops the intake, robot movement, and turns off flashlight
+    roller = 0;
+    chassisR(0);
+    chassisL(0);
+    vision.set_led_pwm(0);
+}
+
 /**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -390,12 +420,54 @@ void autonomous() {
   //roller = 127;
   //pros::delay(5000);
   //shoot();
-  turn_to(90);
+  //turn_to(90);
   //drive_forward(610);
-  pros::delay(500);
+  //pros::delay(500);
   //turn_to(90);
 
-  
+  intakeSetting(on);
+  drive_forward(385);
+  pros::delay(500);
+  drive_forward(-200);
+  turn_to(197);
+  pros::delay(200);
+  shoot();
+  pros::delay(200);
+  turn_to(132);
+  drive_forward(915, 40);
+  pros::delay(200);
+  turn_to(222);
+  pros::delay(100);
+  shoot();
+  //shoot the middle 3
+  pros::delay(200);
+  turn_to(45);
+  drive_forward(720,50);
+
+  // //NEED TO TEST
+  // 
+  //
+  // 
+  // pros::delay(500);
+  // drive_forward(-720);
+  // turn_to(225);
+  // pros::delay(200);
+  // shoot();
+  // //bar 3 (NEED to FINISH)
+  // turn_to(90);
+  // drive_forward(720,50);
+
+  // //
+  // pros::delay(200);
+  // turn_to(197);
+  // drive_forward(-915);
+  // turn_to(180);
+  // //Test roller
+  // runRoller();
+
+
+
+
 
 }
 
