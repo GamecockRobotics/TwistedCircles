@@ -1,7 +1,10 @@
 #include "main.h"
 #include "gui.h"
+#include "pros/llemu.hpp"
 #include "pros/misc.h"
 #include "pros/motors.hpp"
+#include "pros/rtos.h"
+#include <string>
 
 
 //defining motors ports
@@ -17,6 +20,9 @@
 #define CATA_R_PORT 10
 #define INTAKE1_PORT 4
 #define INTAKE2_PORT 5
+#define COLOR_PORT 8
+#define ROLLER1_PORT 2
+#define ROLLER2_PORT 3
 
 
 
@@ -38,11 +44,15 @@ pros::Motor intake_2(INTAKE2_PORT,true);
 // pros::Motor roller(ROLLER_PORT);
 pros::Motor catapult_L(CATA_L_PORT);
 pros::Motor catapult_R(CATA_R_PORT, true);
+pros::Motor roller_1(ROLLER1_PORT);
+pros::Motor roller_2(ROLLER2_PORT,true);
+
 
 //Declaring sensors and pneumatics
 //pros::Imu gyro (GYRO_PORT);
 //pros::ADIDigitalOut launcher(LAUNCHER_PORT);
 pros::Controller controller(pros::E_CONTROLLER_MASTER);
+pros::Optical color(COLOR_PORT);
 
 
 enum intakeDirection {stopped, intake, outtake};
@@ -66,15 +76,10 @@ int catapultTarget = 0;
  * When this callback is fired, it will toggle line 2 of the LCD text between
  * "I was pressed!" and nothing.
  */
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
-}
+
+
+
+
 pros::Motor catapult(CATA_L_PORT);
 
 /**
@@ -86,8 +91,6 @@ pros::Motor catapult(CATA_L_PORT);
 void initialize() {
 	pros::lcd::initialize();
 	pros::lcd::set_text(1, "Hello PROS User!");
-
-	pros::lcd::register_btn1_cb(on_center_button);
 
 	// intake_1.set_brake_mode(MOTOR_BRAKE_COAST);
 	// intake_2.set_brake_mode(MOTOR_BRAKE_COAST);
@@ -124,7 +127,7 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+
 
 int driveTask(){
 	while(true){
@@ -173,6 +176,79 @@ void shoot(){
 	catapult_L = catapultTarget;
 	catapult_R = catapultTarget;
 }
+
+/**
+ *	Gets if the color of the roller optical sensor is red
+ *	@return true if the color is red otherwise false
+ */
+bool is_red(double hue) {
+	return color.get_hue() < 300 || color.get_hue() < 25;
+}
+
+void chassis_L(int speed){
+	chassis_L1 = speed;
+	chassis_L2 = speed;
+	chassis_L3 = speed;
+	chassis_L4 = speed;
+	return;
+}
+void chassis_R(int speed){
+	chassis_R1 = speed;
+	chassis_R2 = speed;
+	chassis_R3 = speed;
+	chassis_R4 = speed;
+	return;
+}
+
+/**
+ * Autonomous roller function to change the roller from current color to new color
+ */
+void run_roller(){
+	// Turn on flashlight
+	color.set_led_pwm(100);
+
+	chassis_R(30);	
+	chassis_L(30);	
+
+
+	// counter to exit loop if taking too long
+	int counter = 0;
+
+	// get the start color of the roller
+	bool start_color = is_red(color.get_hue());
+	pros::lcd::set_text(2, std::to_string(start_color));
+	counter = 0;
+
+	// while start color is not the current color
+	while (start_color == is_red(color.get_hue()) && counter < 200) {
+		pros::lcd::set_text(3, std::to_string(start_color));
+		// turn roller
+		roller_1.move(40);
+		roller_2.move(40);
+		// counter to break if stuck on screw
+		counter++;
+		// delay to allow other tasks to run
+		pros::delay(10);
+		
+	}
+
+	// Stops the intake, robot movement, and turns off flashlight
+	roller_1.brake();
+	roller_2.brake();
+
+	chassis_L(0);	
+	chassis_R(0);	
+
+
+	// turn off flashlight
+	color.set_led_pwm(0);
+	pros::delay(10);
+
+	return;
+}
+
+
+
 /**
  * Runs the operator control code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -186,6 +262,14 @@ void shoot(){
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+ void autonomous() {
+	pros::c::delay(500);
+	run_roller();
+
+
+	
+}
+
 void opcontrol() {
 	bool intakeFlag = true;
 
