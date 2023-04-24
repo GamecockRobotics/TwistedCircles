@@ -482,30 +482,31 @@ grabs the two remaining discs on the line and shoots
 	end
 	*/
 	
-	// intake_toggle(reverse);
-	// drive_forward(-210, 500);
-	// pros::delay(100);
-	// intake_toggle(off);	// Seperating reverse and on to avoid burnout
-	// pros::delay(500);
-	// intake_toggle(on);
-	// pros::delay(500);
-	// intake_toggle(off);
-	// drive_forward(100, 500);
-	// intake_toggle(on);
-	// pros::delay(2000);
-	// intake_toggle(off);
-	// pros::delay(300);
-	// intake_toggle(reverse);
-	// pros::delay(100);
-	// drive_forward(-100, 500);
-	// intake_toggle(on);
-	// pros::delay(3000);
-	// intake_toggle(off);
-	// pros::delay(100);
-	// drive_forward(100, 500);
-	// pros::delay(500);
-	// turn_to(340);
-	// pros::delay(100);
+	intake_toggle(reverse);
+	drive_forward(-210, 500);
+	pros::delay(100);
+	intake_toggle(off);	// Seperating reverse and on to avoid burnout
+	pros::delay(500);
+	intake_toggle(on);
+	pros::delay(500);
+	intake_toggle(off);
+	drive_forward(100, 500);
+	intake_toggle(on);
+	pros::delay(2000);
+	intake_toggle(off);
+	pros::delay(300);
+	intake_toggle(reverse);
+	pros::delay(100);
+	drive_forward(-100, 500);
+	intake_toggle(on);
+	pros::delay(3000);
+	intake_toggle(off);
+	pros::delay(100);
+	drive_forward(100, 500);
+	pros::delay(500);
+	turn_to(345);
+	pros::delay(100);
+	drive_forward(100);
 	pros::delay(4000);
 	shoot(3, 200);
 	
