@@ -546,6 +546,7 @@ void opcontrol() {
 	int y_joystick = 0, x_joystick = 0;
 	// Variables to calculate chassis speed when using arcade drive
 	int power, turn;
+	int flywheel_speed = 185;
 	slew2 = false;
 	// Main Control Loop
 	for (int i = 0; i <= 1;) {
@@ -636,7 +637,10 @@ void opcontrol() {
 
 		// Turn to goal when X pressed on the controller
 		if (controller.get_digital_new_press(DIGITAL_X)) {
-			turn_to_goal();
+		 	flywheel_speed = 200;
+		}
+		if(controller.get_digital_new_press(DIGITAL_Y)){
+			flywheel_speed = 185;
 		}
 
 		if (controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_RIGHT) ) {
@@ -646,7 +650,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-		flywheel_target = 185;
+		flywheel.move_velocity(flywheel_speed);
 		
 		
 
