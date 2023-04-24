@@ -307,7 +307,7 @@ void drive_forward(int distance, int max_speed = 180) {
 	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
 
-    if (fabs(error) < 4000) total_error += error;
+    if (fabs(error) < 6000) total_error += error;
     pros::lcd::set_text(7, std::to_string(total_error));
 
 		error = target - tracking_forward.get_position();
@@ -428,11 +428,14 @@ void autonomous() {
   //turn_to(90);
 
   
-  drive_forward(390);  //range between 350-400
+  drive_forward(410);  //range between 350-400
   intakeSetting(on);
   pros::delay(700);
 
-  drive_forward(-110);
+  turn_to(132);
+  pros::delay(200);
+  drive_forward(200);
+  //drive_forward(int distance)
   turn_to(197);
   pros::delay(1000);
   shoot();
@@ -440,9 +443,10 @@ void autonomous() {
   // turn_to(225);
   // drive_forward(-75);
   // pros::delay(200);
+  drive_forward(-50);
   turn_to(132);
   pros::delay(1000);
-  drive_forward(915, 40);
+  drive_forward(1015, 40);
   pros::delay(200);
   turn_to(222);
   drive_forward(-50);
