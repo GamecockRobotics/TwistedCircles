@@ -544,7 +544,8 @@ grabs the two remaining discs on the line and shoots
 	drive_forward(-350);
 	pros::delay(200);
 	turn_to(0);
-	//drive_forward(610);
+	drive_forward(610);
+	pros::delay(200);
 	right_target = 200;
 	left_target = 200;
 	
@@ -560,10 +561,10 @@ grabs the two remaining discs on the line and shoots
 	pros::delay(200);
 	turn_to(90);
 	pros::delay(100);
-	drive_forward(-300);
+	drive_forward(-325);
 	turn_to(0);
 	pros::delay(200);
-	drive_forward(-610);
+	drive_forward(-610, 50);
 
 
 
