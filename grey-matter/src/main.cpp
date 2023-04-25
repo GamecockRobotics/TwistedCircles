@@ -274,6 +274,7 @@ void turn_to(double angle) {
 		pros::delay(10);
 	}
 	// Zero out motors so the robot does not continue moving
+	pros::lcd::set_text(7, "exit");
 	left_target = 0;
 	right_target = 0;
 
@@ -305,7 +306,7 @@ void competition_initialize() {}
  * 
  * @param distance the distance to travel in mm
  */
-void drive_forward(int distance, int max_speed = 180) {
+void drive_forward(int distance, int max_speed = 180, int thresold_var = 8) {
 
 	// Get initial position 
 	const int target = tracking_forward.get_position() + distance/track_wheel_size;
@@ -315,11 +316,11 @@ void drive_forward(int distance, int max_speed = 180) {
 	// accumulate total error to correct for it
 	double total_error = 0;
 	// The precision in mm
-	const double threshold = 8;
+	const double threshold = thresold_var;
 	// The constants tuned for PID
-	const double kp = .001, kd = .001;
+	const double kp = .002, kd = .01, ki = 0;
 	// PID control loop
-	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
+	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold || left_speed > 5) {
 		prev_error = error;
 
 		error = target - tracking_forward.get_position();
@@ -333,12 +334,13 @@ void drive_forward(int distance, int max_speed = 180) {
 		pros::lcd::set_text(5, "speed: "+  std::to_string((int)(kp*error)) + " + " + std::to_string((int)(kd * (error - prev_error))) + " = " + std::to_string(kp * error + kd * (error - prev_error)));
 
 
-		left_target = kp * error + kd * (error - prev_error);
+		left_target = kp * error + kd * (error - prev_error) + ki* total_error;
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
 		right_target = left_target;
 		pros::delay(10);
 	}
 	// Zero out motors so the robot does not continue moving
+	pros::lcd::set_text(7, "exit");
 	left_target = 0;
 	right_target = 0;
 }
@@ -433,6 +435,8 @@ void intake_toggle(intake_setting setting) {
 	}
 }
 
+
+
 /**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -452,7 +456,7 @@ grabs the second three stack and shoots
 grabs the two preloads and shoots
 grabs the two remaining discs on the line and shoots
 */
-	flywheel_target = 250;
+	flywheel.move_velocity(200);
 	// drive_forward(-22*inch_to_mm);
 	// pros::delay(100);
 	// turn_to(0);
@@ -482,33 +486,89 @@ grabs the two remaining discs on the line and shoots
 	end
 	*/
 	
-	intake_toggle(reverse);
-	drive_forward(-210, 500);
-	pros::delay(100);
-	intake_toggle(off);	// Seperating reverse and on to avoid burnout
-	pros::delay(500);
+	// intake_toggle(reverse);
+	// drive_forward(-455, 200, 2);
+	// pros::delay(750);
+	// intake_toggle(on);
+	// pros::delay(500);
+	// drive_forward(50, 200);
+
+	//turn_to(90);
+	// pros::delay(100);
+	// intake_toggle(off);	// Seperating reverse and on to avoid burnout
+	// pros::delay(500);
+	// intake_toggle(on);
+	// pros::delay(500);
+	// intake_toggle(off);
+	// drive_forward(100, 500);
+	// intake_toggle(on);
+	// pros::delay(2000);
+	// intake_toggle(off);
+	// pros::delay(300);
+	// intake_toggle(reverse);
+	// pros::delay(100);
+	// drive_forward(-100, 500);
+	// intake_toggle(on);
+	// pros::delay(3000);
+	// intake_toggle(off);
+	// pros::delay(100);
+	// drive_forward(100, 500);
+	// pros::delay(500);
+	// turn_to(345);
+	// pros::delay(100);
+	// drive_forward(100);
+	// pros::delay(4000);
+	// shoot(3, 200);
+
+	run_roller();
+	drive_forward(50);
+	pros::delay(200);
+	turn_to(340);
 	intake_toggle(on);
+	drive_forward(-150);
 	pros::delay(500);
-	intake_toggle(off);
-	drive_forward(100, 500);
-	intake_toggle(on);
-	pros::delay(2000);
-	intake_toggle(off);
-	pros::delay(300);
-	intake_toggle(reverse);
-	pros::delay(100);
-	drive_forward(-100, 500);
-	intake_toggle(on);
-	pros::delay(3000);
-	intake_toggle(off);
-	pros::delay(100);
-	drive_forward(100, 500);
+	drive_forward(50);
+	turn_to(90);
+	pros::delay(750);
+	drive_forward(-1120);
 	pros::delay(500);
-	turn_to(345);
-	pros::delay(100);
-	drive_forward(100);
-	pros::delay(4000);
+	turn_to(180);
+	pros::delay(200);
+	drive_forward(610);
+	pros::delay(500);
+	turn_to(150);
+	drive_forward(350);
+	pros::delay(200);
 	shoot(3, 200);
+	pros::delay(200);
+	drive_forward(-350);
+	pros::delay(200);
+	turn_to(0);
+	//drive_forward(610);
+	right_target = 200;
+	left_target = 200;
+	
+	pros::delay(2000);
+	left_target = 0;
+	right_target = 0;
+	gyro.set_rotation(0);
+	pros::lcd::set_text(6, "SET ROTATION");
+	pros::delay(3000);
+
+	//Need to test
+	drive_forward(-100);
+	pros::delay(200);
+	turn_to(90);
+	pros::delay(100);
+	drive_forward(-300);
+	turn_to(0);
+	pros::delay(200);
+	drive_forward(-610);
+
+
+
+
+
 	
 
 	
@@ -638,9 +698,12 @@ void opcontrol() {
 		// Turn to goal when X pressed on the controller
 		if (controller.get_digital_new_press(DIGITAL_X)) {
 		 	flywheel_speed = 200;
+			//flywheel = 185;
+
 		}
 		if(controller.get_digital_new_press(DIGITAL_Y)){
 			flywheel_speed = 185;
+			
 		}
 
 		if (controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_RIGHT) ) {
