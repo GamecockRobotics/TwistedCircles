@@ -75,10 +75,10 @@ void autonomous() {
  */
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	pros::Motor chassis_l1(21, true);
+	pros::Motor chassis_l1(19,true);
 	pros::Motor chassis_l2(10, true);
-	pros::Motor chassis_r1(3);
-	pros::Motor chassis_r2(4);
+	pros::Motor chassis_r1(3, true);
+	pros::Motor chassis_r2(2, true);
 
 	pros::Motor fly(2);
 	pros::Motor in(1);

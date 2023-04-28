@@ -32,9 +32,9 @@
 #define ROLLER_PORT 19
 
 // Define Ports for Sensors
-#define TRACKING_SIDE_PORT 5
-#define TRACKING_FORWARD_PORT 6
-#define GYRO_PORT 15
+#define TRACKING_SIDE_PORT 6
+#define TRACKING_FORWARD_PORT 5
+#define GYRO_PORT 12
 #define COLOR_PORT 10
 
 // Define Ports for sensors and pistons on the Analog Ports
@@ -233,6 +233,7 @@ int drive () {
 void initialize() {
 	
 	pros::lcd::initialize();
+	tracking_forward.reset_position();
 	// Delay to allow calibration of sensors
 	pros::delay(3000);
 	// Initialize lcd for debugging
@@ -259,7 +260,7 @@ void turn_to(double angle) {
 	const double threshold = 1;
 	// The constants tuned for PID
 	// const double kp = 0.84, ki = 0.04, kd = 0.080;
-	const double kp = 1, ki = 0.05, kd = 2;
+	const double kp = 0.5, ki = 0.05, kd = 0.25;  //kp = 1, ki 0,05, kd = 2
 
 	// PID control loop
 	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
@@ -279,6 +280,8 @@ void turn_to(double angle) {
 	right_target = 0;
 
 }
+
+
 
 /**
  * Function to turn to face goal
@@ -520,6 +523,8 @@ grabs the two remaining discs on the line and shoots
 	// pros::delay(4000);
 	// shoot(3, 200);
 
+
+	//Stuff works
 	run_roller();
 	drive_forward(50);
 	pros::delay(200);
@@ -527,44 +532,74 @@ grabs the two remaining discs on the line and shoots
 	intake_toggle(on);
 	drive_forward(-150);
 	pros::delay(500);
-	drive_forward(50);
+	drive_forward(100);
 	turn_to(90);
+	intake_toggle(off);
 	pros::delay(750);
 	drive_forward(-1120);
 	pros::delay(500);
-	turn_to(180);
-	pros::delay(200);
-	drive_forward(610);
-	pros::delay(500);
-	turn_to(150);
-	drive_forward(350);
-	pros::delay(200);
-	shoot(3, 200);
-	pros::delay(200);
-	drive_forward(-350);
-	pros::delay(200);
-	turn_to(0);
-	drive_forward(610);
-	pros::delay(200);
-	right_target = 200;
-	left_target = 200;
+	//Changing
+	turn_to(10); //180
 	
-	pros::delay(2000);
-	left_target = 0;
-	right_target = 0;
-	gyro.set_rotation(0);
-	pros::lcd::set_text(6, "SET ROTATION");
-	pros::delay(3000);
-
-	//Need to test
-	drive_forward(-100);
+	pros::delay(750);
+	drive_forward(-1035);
 	pros::delay(200);
-	turn_to(90);
+	turn_to(139); //135
 	pros::delay(100);
-	drive_forward(-325);
-	turn_to(0);
+	drive_forward(200);
+	shoot(4, 200);
+	pros::delay(100);
+	drive_forward(-200);
+	for (int i = 0; i < 3 ; i++) {
+		indexer.set_value(true);
+		pros::delay(100);
+		indexer.set_value(false);
+		pros::delay(100);
+	}
+	
+	intake_toggle(on);
+	drive_forward(-200, 50);
+	turn_to(150);
+	drive_forward(-200, 50);
+	turn_to(170);
+	drive_forward(-400, 50);
 	pros::delay(200);
-	drive_forward(-610, 50);
+	// drive_forward(900, 90);
+	// pros::delay(200);
+	// turn_to(137);
+	// pros::delay(200);
+	// drive_forward(200);
+	// shoot(4, 200);
+
+
+
+	// pros::delay(200);
+	// drive_forward(610);
+	// pros::delay(500);
+	// turn_to(150);
+	// drive_forward(350);
+	// pros::delay(200);
+	// shoot(3, 200);
+	// pros::delay(200);
+	// drive_forward(-350);
+	// pros::delay(200);
+
+
+
+	// turn_to(0);
+	// drive_forward(610);
+	// pros::delay(200);
+	
+
+	// //Need to test
+	// drive_forward(-100);
+	// pros::delay(200);
+	// turn_to(90);
+	// pros::delay(100);
+	// drive_forward(-325);
+	// turn_to(0);
+	// pros::delay(200);
+	// drive_forward(-610, 50);
 
 
 
@@ -700,11 +735,17 @@ void opcontrol() {
 		if (controller.get_digital_new_press(DIGITAL_X)) {
 		 	flywheel_speed = 200;
 			//flywheel = 185;
+			flywheel.move_velocity(flywheel_speed);
 
 		}
 		if(controller.get_digital_new_press(DIGITAL_Y)){
 			flywheel_speed = 185;
+			flywheel.move_velocity(flywheel_speed);
 			
+		}
+		if(controller.get_digital_new_press(DIGITAL_B)){
+			flywheel_speed = 200;
+			flywheel = 200;
 		}
 
 		if (controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_RIGHT) ) {
@@ -714,7 +755,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-		flywheel.move_velocity(flywheel_speed);
+		
 		
 		
 
