@@ -32,9 +32,9 @@
 #define ROLLER_PORT 19
 
 // Define Ports for Sensors
-#define TRACKING_SIDE_PORT 5
-#define TRACKING_FORWARD_PORT 6
-#define GYRO_PORT 15
+#define TRACKING_SIDE_PORT 6
+#define TRACKING_FORWARD_PORT 5
+#define GYRO_PORT 12
 #define COLOR_PORT 10
 
 // Define Ports for sensors and pistons on the Analog Ports
@@ -42,6 +42,8 @@
 #define ENDGAME_PORT 4
 #define FLYWHEEL_POTENTIOMETER_PORT 3
 
+// Define Enums
+enum intake_setting {on, off, reverse};
 
 // The value of pi
 static constexpr double pi = 3.1415926535897932;
@@ -62,7 +64,7 @@ static constexpr double track_wheel_size = 0.00609556241;
 // Distance from back tracking wheel to center of robot
 static constexpr double back_track_offset = 150;
 // The angle the robot is facing
-static constexpr double start_theta = 270;
+static constexpr double start_theta = 180;
 // The x coordinate of our alliance goal in millimeters
 static constexpr int goal_x = 457;
 // The y coordinate of our alliance goal in millimeters
@@ -70,7 +72,7 @@ static constexpr int goal_y = 457;
 
 
 // Varaiables to keep track of the Location of the Robot
-double x_loc = 1385, y_loc = 3238;
+double x_loc = 3253, y_loc = 915;
 // Variable to keep track of the Orientation of the Robot
 double theta;
 
@@ -227,9 +229,11 @@ int drive () {
 
 
 
+
 void initialize() {
 	
 	pros::lcd::initialize();
+	tracking_forward.reset_position();
 	// Delay to allow calibration of sensors
 	pros::delay(3000);
 	// Initialize lcd for debugging
@@ -256,7 +260,7 @@ void turn_to(double angle) {
 	const double threshold = 1;
 	// The constants tuned for PID
 	// const double kp = 0.84, ki = 0.04, kd = 0.080;
-	const double kp = 1, ki = 0.05, kd = 2;
+	const double kp = 0.5, ki = 0.05, kd = 0.25;  //kp = 1, ki 0,05, kd = 2
 
 	// PID control loop
 	while (fabs(error) > threshold || fabs(prev_error) > threshold) {
@@ -271,10 +275,13 @@ void turn_to(double angle) {
 		pros::delay(10);
 	}
 	// Zero out motors so the robot does not continue moving
+	pros::lcd::set_text(7, "exit");
 	left_target = 0;
 	right_target = 0;
 
 }
+
+
 
 /**
  * Function to turn to face goal
@@ -302,7 +309,7 @@ void competition_initialize() {}
  * 
  * @param distance the distance to travel in mm
  */
-void drive_forward(int distance, int max_speed = 180) {
+void drive_forward(int distance, int max_speed = 180, int thresold_var = 8) {
 
 	// Get initial position 
 	const int target = tracking_forward.get_position() + distance/track_wheel_size;
@@ -312,11 +319,11 @@ void drive_forward(int distance, int max_speed = 180) {
 	// accumulate total error to correct for it
 	double total_error = 0;
 	// The precision in mm
-	const double threshold = 8;
+	const double threshold = thresold_var;
 	// The constants tuned for PID
-	const double kp = .001, kd = .001;
+	const double kp = .002, kd = .01, ki = 0;
 	// PID control loop
-	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
+	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold || left_speed > 5) {
 		prev_error = error;
 
 		error = target - tracking_forward.get_position();
@@ -330,12 +337,13 @@ void drive_forward(int distance, int max_speed = 180) {
 		pros::lcd::set_text(5, "speed: "+  std::to_string((int)(kp*error)) + " + " + std::to_string((int)(kd * (error - prev_error))) + " = " + std::to_string(kp * error + kd * (error - prev_error)));
 
 
-		left_target = kp * error + kd * (error - prev_error);
+		left_target = kp * error + kd * (error - prev_error) + ki* total_error;
 		left_target = abs(left_target) > max_speed ? max_speed*(left_target > 0 ? 1:-1) : left_target;
 		right_target = left_target;
 		pros::delay(10);
 	}
 	// Zero out motors so the robot does not continue moving
+	pros::lcd::set_text(7, "exit");
 	left_target = 0;
 	right_target = 0;
 }
@@ -346,13 +354,15 @@ void drive_forward(int distance, int max_speed = 180) {
  * @param speed the speed the flywheel should shoot at
  * @param count the number of times the robot should shoot at that speed
  */
-void shoot(int speed, int count) {
+void shoot(int count, int speed) {
 	// Wait until flywheel is at desired speed
-	flywheel = speed;
+	flywheel.move_velocity(speed);
 	for (; count > 0; count--) {
 		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
+		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
 		// Shoot
-		indexer.set_value(false);
+		pros::lcd::set_text(7, "flywheel speed: " + std::to_string(flywheel.get_actual_velocity()));
+		indexer.set_value(true);
 		pros::delay(100);
 		indexer.set_value(false);
 		pros::delay(300);
@@ -411,6 +421,26 @@ void run_roller(){
 }
 
 /**
+ * Autonomous function to turn on and off the intake
+ */
+void intake_toggle(intake_setting setting) {
+	if (setting == on) {
+		intake1 = 127;
+		intake2 = 127;
+	}
+	else if (setting == reverse) {
+		intake1 = -127;
+		intake2 = -127;
+	}
+	else {
+		intake1 = 0;
+		intake2 = 0;
+	}
+}
+
+
+
+/**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
  * the Field Management System or the VEX Competition Switch in the autonomous
@@ -429,8 +459,7 @@ grabs the second three stack and shoots
 grabs the two preloads and shoots
 grabs the two remaining discs on the line and shoots
 */
-
-	shoot(185,2);
+	flywheel.move_velocity(200);
 	// drive_forward(-22*inch_to_mm);
 	// pros::delay(100);
 	// turn_to(0);
@@ -440,10 +469,145 @@ grabs the two remaining discs on the line and shoots
 	// drive_forward(6*inch_to_mm);
 	// turn_to(15);
 	// pros::delay(20);
-	// shoot(170, 2);
+	// shoot(2);
 	// turn_to(0);
+
+	/*
+	TODO: Auton Plan
+	Pick up 3 stack (DONE)
+	Get Roller
+	Move Closer to center
+	Shoot
+	Pick up 2 mid disks
+	shoot
+	Pick up 3 stack on our side
+	shoot
+	Pick up Preload (Next to Low goal)
+	Shoot
+	Pick up 3 along low goal
+	Shoot
+	end
+	*/
+	
+	// intake_toggle(reverse);
+	// drive_forward(-455, 200, 2);
+	// pros::delay(750);
+	// intake_toggle(on);
+	// pros::delay(500);
+	// drive_forward(50, 200);
+
+	//turn_to(90);
+	// pros::delay(100);
+	// intake_toggle(off);	// Seperating reverse and on to avoid burnout
+	// pros::delay(500);
+	// intake_toggle(on);
+	// pros::delay(500);
+	// intake_toggle(off);
+	// drive_forward(100, 500);
+	// intake_toggle(on);
+	// pros::delay(2000);
+	// intake_toggle(off);
+	// pros::delay(300);
+	// intake_toggle(reverse);
+	// pros::delay(100);
+	// drive_forward(-100, 500);
+	// intake_toggle(on);
+	// pros::delay(3000);
+	// intake_toggle(off);
+	// pros::delay(100);
+	// drive_forward(100, 500);
+	// pros::delay(500);
+	// turn_to(345);
+	// pros::delay(100);
+	// drive_forward(100);
+	// pros::delay(4000);
+	// shoot(3, 200);
+
+
+	//Stuff works
+	run_roller();
+	drive_forward(50);
+	pros::delay(200);
+	turn_to(340);
+	intake_toggle(on);
+	drive_forward(-150);
+	pros::delay(500);
+	drive_forward(100);
+	turn_to(90);
+	intake_toggle(off);
+	pros::delay(750);
+	drive_forward(-1120);
+	pros::delay(500);
+	//Changing
+	turn_to(10); //180
+	
+	pros::delay(750);
+	drive_forward(-1035);
+	pros::delay(200);
+	turn_to(139); //135
+	pros::delay(100);
+	drive_forward(200);
+	shoot(4, 200);
+	pros::delay(100);
+	drive_forward(-200);
+	for (int i = 0; i < 3 ; i++) {
+		indexer.set_value(true);
+		pros::delay(100);
+		indexer.set_value(false);
+		pros::delay(100);
+	}
+	
+	intake_toggle(on);
+	drive_forward(-200, 50);
+	turn_to(150);
+	drive_forward(-200, 50);
+	turn_to(170);
+	drive_forward(-400, 50);
+	pros::delay(200);
+	// drive_forward(900, 90);
+	// pros::delay(200);
+	// turn_to(137);
+	// pros::delay(200);
+	// drive_forward(200);
+	// shoot(4, 200);
+
+
+
+	// pros::delay(200);
+	// drive_forward(610);
+	// pros::delay(500);
+	// turn_to(150);
+	// drive_forward(350);
+	// pros::delay(200);
+	// shoot(3, 200);
+	// pros::delay(200);
+	// drive_forward(-350);
+	// pros::delay(200);
+
+
+
+	// turn_to(0);
+	// drive_forward(610);
+	// pros::delay(200);
 	
 
+	// //Need to test
+	// drive_forward(-100);
+	// pros::delay(200);
+	// turn_to(90);
+	// pros::delay(100);
+	// drive_forward(-325);
+	// turn_to(0);
+	// pros::delay(200);
+	// drive_forward(-610, 50);
+
+
+
+
+
+	
+
+	
 
 
 
@@ -478,6 +642,7 @@ void opcontrol() {
 	int y_joystick = 0, x_joystick = 0;
 	// Variables to calculate chassis speed when using arcade drive
 	int power, turn;
+	int flywheel_speed = 185;
 	slew2 = false;
 	// Main Control Loop
 	for (int i = 0; i <= 1;) {
@@ -568,7 +733,19 @@ void opcontrol() {
 
 		// Turn to goal when X pressed on the controller
 		if (controller.get_digital_new_press(DIGITAL_X)) {
-			turn_to_goal();
+		 	flywheel_speed = 200;
+			//flywheel = 185;
+			flywheel.move_velocity(flywheel_speed);
+
+		}
+		if(controller.get_digital_new_press(DIGITAL_Y)){
+			flywheel_speed = 185;
+			flywheel.move_velocity(flywheel_speed);
+			
+		}
+		if(controller.get_digital_new_press(DIGITAL_B)){
+			flywheel_speed = 200;
+			flywheel = 200;
 		}
 
 		if (controller.get_digital(DIGITAL_UP) && controller.get_digital(DIGITAL_RIGHT) ) {
@@ -578,7 +755,7 @@ void opcontrol() {
 			pros::delay(500);
 		}
 		
-		flywheel = 185;
+		
 		
 		
 
