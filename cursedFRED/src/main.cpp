@@ -16,10 +16,10 @@
 #define CATAR_PORT 6
 #define GYRO_PORT 12
 #define LIMIT_PORT 'g'
-#define VISION1_PORT 14
+#define VISION1_PORT 3
 #define VISION2_PORT 
 #define RANGE_SWITCH_PORT 'f' // These are pistons
-#define ENDGAME_PORT 'a'      // These are pistons
+#define ENDGAME_PORT 'b'      // These are pistons
 #define CHASSIS_L1_PORT 18     // top front motor
 #define CHASSIS_L2_PORT 17     // Top back motor
 #define CHASSIS_L3_PORT 20     // bottom front motor
@@ -98,7 +98,7 @@ double theta;
 // Variables to store the target speed for each side of the chassis
 int left_target = 0, right_target = 0;
 
-bool endgameState = true, rangestate = true;
+bool endgameState = true, rangestate = false;
 
 bool cataFlag = false;
 
@@ -428,36 +428,47 @@ void autonomous() {
   //turn_to(90);
 
   
-  drive_forward(410);  //range between 350-400
+  drive_forward(390);  //range between 350-400
   intakeSetting(on);
   pros::delay(700);
 
-  turn_to(132);
-  pros::delay(200);
-  drive_forward(200);
-  //drive_forward(int distance)
-  turn_to(197);
-  pros::delay(1000);
-  shoot();
-  pros::delay(500);
-  // turn_to(225);
-  // drive_forward(-75);
+  // turn_to(132);
   // pros::delay(200);
+  // drive_forward(200);
   drive_forward(-50);
-  turn_to(132);
-  pros::delay(1000);
-  drive_forward(1015, 40);
-  pros::delay(200);
-  turn_to(222);
-  drive_forward(-50);
+  turn_to(194);
   pros::delay(1000);
   shoot();
-  //shoot the middle 3
+
+  pros::delay(750);
+  turn_to(132);
+  drive_forward(-170);
+  pros::delay(100);
+  turn_to(180);
   pros::delay(200);
-  turn_to(0);
-  pros::delay(200);
-  drive_forward(720);
-  turn_to(90);
+  drive_forward(-200);
+  runRoller();
+
+
+  // pros::delay(500);
+  // // turn_to(225);
+  // // drive_forward(-75);
+  // // pros::delay(200);
+  // drive_forward(-50);
+  // 
+  // pros::delay(1000);
+  // drive_forward(1015, 40);
+  // pros::delay(200);
+  // turn_to(222);
+  // drive_forward(-50);
+  // pros::delay(1000);
+  // shoot();
+  // //shoot the middle 3
+  // pros::delay(200);
+  // turn_to(0);
+  // pros::delay(200);
+  // drive_forward(720);
+  // turn_to(90);
   // 
 
   // //NEED TO TEST
@@ -574,21 +585,17 @@ void opcontrol() {
     
 
 
-    // // String Launcher
-    // if (controller.get_digital(DIGITAL_RIGHT) &&
-    //     controller.get_digital(DIGITAL_UP) &&
-    //     controller.get_digital(DIGITAL_DOWN) &&
-    //     controller.get_digital(DIGITAL_LEFT) &&
-    //     controller.get_digital(DIGITAL_Y) &&
-    //     controller.get_digital(DIGITAL_X) &&
-    //     controller.get_digital(DIGITAL_B) &&
-    //     controller.get_digital(DIGITAL_A)) {
-    //   endgame.set_value(endgameState);
-    // }
+    // String Launcher
+    if (controller.get_digital(DIGITAL_DOWN) &&
+        controller.get_digital(DIGITAL_LEFT)) 
+      {
+      endgame.set_value(endgameState);
+    }
 
     if (controller.get_digital(DIGITAL_X)) {
       rangeSwitchToggle(true);
     }
+
 
     pros::delay(20);
   }
