@@ -252,6 +252,9 @@ void shoot(){
 void initialize() {
   pros::lcd::initialize();
   //pros::lcd::set_text(1, "Hello PROS User!");
+  tracking_forward.reset_position();
+  tracking_side.reset_position();
+  tareMotors();
 
   pros::c::serctl(SERCTL_DISABLE_COBS, NULL);
 
@@ -261,6 +264,15 @@ void initialize() {
 
   cataL.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
   cataR.set_brake_mode(pros::E_MOTOR_BRAKE_HOLD);
+
+  chassis_l1.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+  chassis_l2.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+  chassis_l3.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+  chassis_l4.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+  chassis_r1.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+  chassis_r2.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+  chassis_r3.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
+  chassis_r4.set_brake_mode(pros::E_MOTOR_BRAKE_COAST);
 
   pros::Task odometry_task(odometry);
   pros::Task cata_task(cataReset);
@@ -307,7 +319,7 @@ void drive_forward(int distance, int max_speed = 180) {
 	while (fabs(error)*track_wheel_size > threshold || fabs(prev_error)*track_wheel_size > threshold) {
 		prev_error = error;
 
-    if (fabs(error) < 6000) total_error += error;
+    if (fabs(error) < 7000) total_error += error;
     pros::lcd::set_text(7, std::to_string(total_error));
 
 		error = target - tracking_forward.get_position();
@@ -419,79 +431,62 @@ void runRoller(int speed = 75){
  * from where it left off.
  */
 void autonomous() {
-  //roller = 127;
-  //pros::delay(5000);
-  //shoot();
-  //turn_to(90);
-  //drive_forward(610);
-  //pros::delay(500);
-  //turn_to(90);
-
+  int motor_position = 830; //750
   
-  drive_forward(390);  //range between 350-400
+
+  tareMotors();
+
+  chassis_l1.move_absolute(motor_position, 20);
+  chassis_l2.move_absolute(motor_position, 20);
+  chassis_l3.move_absolute(motor_position, 20);
+  chassis_l4.move_absolute(motor_position, 20);
+  chassis_r1.move_absolute(motor_position, 20);
+  chassis_r2.move_absolute(motor_position, 20);
+  chassis_r3.move_absolute(motor_position, 20);
+  chassis_r4.move_absolute(motor_position, 20);
+  while(!((chassis_l1.get_position() < motor_position +5) && (chassis_l1.get_position() > motor_position - 5))){
+    pros::delay(2);
+  }
+  
   intakeSetting(on);
   pros::delay(700);
 
-  // turn_to(132);
-  // pros::delay(200);
-  // drive_forward(200);
+  
   drive_forward(-50);
-  turn_to(194);
+  turn_to(191);
   pros::delay(1000);
+  drive_forward(105); //90
+  pros::delay(750);
   shoot();
 
   pros::delay(750);
-  turn_to(132);
-  drive_forward(-170);
+  turn_to(133);
+  drive_forward(-210);
   pros::delay(100);
   turn_to(180);
   pros::delay(200);
-  drive_forward(-200);
+  drive_forward(-290);
+  intakeSetting(off);
   runRoller();
+  rangeSwitchToggle(true);
 
 
+  //Skills
+  // drive_forward(410);
+  // pros::delay(300);
+  // turn_to(135);
+  // //runRoller();
+  // roller = -127;
   // pros::delay(500);
-  // // turn_to(225);
-  // // drive_forward(-75);
-  // // pros::delay(200);
-  // drive_forward(-50);
-  // 
-  // pros::delay(1000);
-  // drive_forward(1015, 40);
-  // pros::delay(200);
-  // turn_to(222);
-  // drive_forward(-50);
-  // pros::delay(1000);
-  // shoot();
-  // //shoot the middle 3
-  // pros::delay(200);
-  // turn_to(0);
-  // pros::delay(200);
-  // drive_forward(720);
+  // roller = 0;
+  // pros::delay(2000);
+  // drive_forward(20);
+
+  // //turn_to();
+
   // turn_to(90);
-  // 
 
-  // //NEED TO TEST
-  // 
-  //
-  // 
-  // pros::delay(500);
-  // drive_forward(-720);
-  // turn_to(225);
-  // pros::delay(200);
-  // shoot();
-  // //bar 3 (NEED to FINISH)
-  // turn_to(90);
-  // drive_forward(720,50);
-
-  // //
-  // pros::delay(200);
-  // turn_to(197);
-  // drive_forward(-915);
-  // turn_to(180);
-  // //Test roller
-  // runRoller();
-
+  //endgame.set_value(endgameState);
 
 
 
@@ -586,8 +581,7 @@ void opcontrol() {
 
 
     // String Launcher
-    if (controller.get_digital(DIGITAL_DOWN) &&
-        controller.get_digital(DIGITAL_LEFT)) 
+    if (controller.get_digital(DIGITAL_DOWN)) 
       {
       endgame.set_value(endgameState);
     }

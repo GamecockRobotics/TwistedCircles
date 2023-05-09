@@ -4,6 +4,7 @@
 #include "pros/misc.h"
 #include "pros/motors.hpp"
 #include "pros/rtos.h"
+#include "pros/rtos.hpp"
 #include <string>
 
 
@@ -263,7 +264,11 @@ void run_roller(){
  * task, not resume it from where it left off.
  */
  void autonomous() {
+	
 	pros::c::delay(500);
+	roller_1.move(40);
+	roller_2.move(40);
+	pros::delay(1000);
 	run_roller();
 
 
@@ -294,14 +299,14 @@ void opcontrol() {
 		}
 
 		if(controller.get_digital(DIGITAL_L1)){
-			intake_1 = 127;
-			intake_2 = 127;
+			roller_1 = 127;
+			roller_2 = 127;
 		} else if(controller.get_digital(DIGITAL_L2)){
-			intake_1 = -127;
-			intake_2 = -127;
+			roller_1 = -127;
+			roller_2 = -127;
 		} else {
-			intake_1 = 0;
-			intake_2 = 0;
+			roller_1 = 0;
+			roller_2 = 0;
 		}
 
 	}
