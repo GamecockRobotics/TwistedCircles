@@ -196,22 +196,23 @@ int drive () {
 	const int slew = 60;
 	const int slew_f = 35;
 	while (slew2) {
-			if (chassis_l1.get_actual_velocity() + slew_f < left_target) {
-				left_speed = chassis_l1.get_actual_velocity() + slew_f;
-			} else if (chassis_l1.get_actual_velocity() - slew > left_target) {
-				left_speed = chassis_l1.get_actual_velocity() - slew;
-			} else {
-				left_speed = left_target;
-			}
+			// if (chassis_l1.get_actual_velocity() + slew_f < left_target) {
+			// 	left_speed = chassis_l1.get_actual_velocity() + slew_f;
+			// } else if (chassis_l1.get_actual_velocity() - slew > left_target) {
+			// 	left_speed = chassis_l1.get_actual_velocity() - slew;
+			// } else {
+			// 	left_speed = left_target;
+			// }
 
-			if (chassis_r1.get_actual_velocity() + slew_f < right_target) {
-				right_speed = chassis_r1.get_actual_velocity() + slew_f;
-			} else if (chassis_r1.get_actual_velocity() - slew > right_target) {
-				right_speed = chassis_r1.get_actual_velocity() - slew;
-			} else {
-				right_speed = right_target;
-			}
-		
+			// if (chassis_r1.get_actual_velocity() + slew_f < right_target) {
+			// 	right_speed = chassis_r1.get_actual_velocity() + slew_f;
+			// } else if (chassis_r1.get_actual_velocity() - slew > right_target) {
+			// 	right_speed = chassis_r1.get_actual_velocity() - slew;
+			// } else {
+			// 	right_speed = right_target;
+			// }
+		left_speed = left_target;
+		right_speed = right_target;		
 
 		chassis_l1.move_velocity(left_speed);
 		chassis_l2.move_velocity(left_speed);
@@ -294,11 +295,6 @@ void turn_to_goal() {
 }
 
 
-/**
- * Runs while the robot is in the disabled state of Field Management System or
- * the VEX Competition Switch, following either autonomous or opcontrol. When
- * the robot is enabled, this task will exit.
- */
 void disabled() {}
 
 void competition_initialize() {}
@@ -356,7 +352,7 @@ void drive_forward(int distance, int max_speed = 180, int thresold_var = 8) {
  */
 void shoot(int count, int speed) {
 	// Wait until flywheel is at desired speed
-	flywheel.move_velocity(speed);
+	flywheel = speed;
 	for (; count > 0; count--) {
 		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
 		while (fabs(speed - flywheel.get_actual_velocity()) > 5) { pros::delay(10); }
@@ -400,7 +396,7 @@ void run_roller(){
 	// while start color is not the current color
 	while (start_color == is_red(color.get_hue()) && counter < 200) {
 		// turn roller
-		roller.move(65);
+		roller.move(85);
 		// counter to break if stuck on screw
 		counter++;
 		// delay to allow other tasks to run
@@ -440,17 +436,7 @@ void intake_toggle(intake_setting setting) {
 
 
 
-/**
- * Runs the user autonomous code. This function will be started in its own task
- * with the default priority and stack size whenever the robot is enabled via
- * the Field Management System or the VEX Competition Switch in the autonomous
- * mode. Alternatively, this function may be called in initialize or opcontrol
- * for non-competition testing purposes.
- *
- * If the robot is disabled or communications is lost, the autonomous task
- * will be stopped. Re-enabling the robot will restart the task, not re-start it
- * from where it left off.
- */
+
 void autonomous() {	
 /**
 grabs the three stack and shoots
@@ -526,6 +512,7 @@ grabs the two remaining discs on the line and shoots
 
 	//Stuff works
 	run_roller();
+	flywheel = 200;
 	drive_forward(50);
 	pros::delay(200);
 	turn_to(340);
@@ -534,6 +521,7 @@ grabs the two remaining discs on the line and shoots
 	pros::delay(500);
 	drive_forward(100);
 	turn_to(90);
+
 	intake_toggle(off);
 	pros::delay(750);
 	drive_forward(-1120);
@@ -544,18 +532,18 @@ grabs the two remaining discs on the line and shoots
 	pros::delay(750);
 	drive_forward(-1035);
 	pros::delay(200);
-	turn_to(139); //135
+	turn_to(135); //135
 	pros::delay(100);
 	drive_forward(200);
-	shoot(4, 200);
-	pros::delay(100);
-	drive_forward(-200);
 	for (int i = 0; i < 3 ; i++) {
 		indexer.set_value(true);
-		pros::delay(100);
+		pros::delay(80);
 		indexer.set_value(false);
-		pros::delay(100);
+		pros::delay(2000);
 	}
+	pros::delay(100);
+	drive_forward(-200);
+	
 	
 	intake_toggle(on);
 	drive_forward(-200, 50);
